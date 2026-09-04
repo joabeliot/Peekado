@@ -6,6 +6,7 @@ struct NotionClient {
 
     enum ClientError: LocalizedError {
         case missingToken
+        case missingDatabaseID
         case http(status: Int, body: String)
         case badResponse
 
@@ -13,6 +14,8 @@ struct NotionClient {
             switch self {
             case .missingToken:
                 return "No Notion token yet — add it in Settings (the gear icon)."
+            case .missingDatabaseID:
+                return "No database ID yet — add it in Settings (the gear icon)."
             case let .http(status, body):
                 return "Notion returned \(status).\n\(body)"
             case .badResponse:
@@ -24,8 +27,11 @@ struct NotionClient {
     private let token: String
     private let session: URLSession
 
-    /// Throws `.missingToken` if there's no token in the Keychain yet.
+    /// Throws `.missingToken` / `.missingDatabaseID` if setup is incomplete.
     init(session: URLSession = .shared) throws {
+        guard !Config.databaseID.isEmpty else {
+            throw ClientError.missingDatabaseID
+        }
         guard let token = KeychainStore.readToken() else {
             throw ClientError.missingToken
         }

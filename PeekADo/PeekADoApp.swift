@@ -2,18 +2,19 @@ import SwiftUI
 
 /// Peek-a-do — a menu bar only utility.
 ///
-/// There is no Dock icon and no main window (see `INFOPLIST_KEY_LSUIElement`
-/// in the target's build settings). The whole app is the `MenuBarExtra` below.
+/// No Dock icon, no main window (`INFOPLIST_KEY_LSUIElement`). The menu bar item,
+/// its popover, and the global toggle hotkey are all managed by `AppDelegate` —
+/// `MenuBarExtra` can't be opened/closed from code, and we need a hotkey to do
+/// exactly that.
 @main
 struct PeekADoApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     var body: some Scene {
-        MenuBarExtra {
-            TaskListView()
-        } label: {
-            Image(systemName: "checklist")
+        // The app has no scene of its own; keep an empty Settings scene so
+        // SwiftUI is satisfied. It never shows for an LSUIElement app.
+        Settings {
+            EmptyView()
         }
-        // `.window` gives us a real inline SwiftUI view in the dropdown,
-        // not a plain AppKit menu.
-        .menuBarExtraStyle(.window)
     }
 }

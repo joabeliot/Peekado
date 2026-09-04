@@ -1,53 +1,55 @@
 import Foundation
 
-/// Everything needed to point Peek-a-do at *your* Notion database.
+/// Notion config.
 ///
-/// The integration **token is deliberately not in this file** — it lives in the
-/// macOS Keychain and you paste it via the app's Settings panel (the gear icon
-/// in the dropdown). That keeps the secret out of git.
-///
-/// >>> YOU MUST EDIT `databaseID` AND THE PROPERTY NAMES BELOW <<<
+/// - The **token** lives in the Keychain (`KeychainStore`), entered in Settings.
+/// - The **database id** and **property names** live in `UserDefaults`, also
+///   entered in Settings — `AppSettings` writes them, this reads them back.
+/// - The values below with no Settings field are plain constants: edit them here
+///   if your database differs.
 enum Config {
 
-    // MARK: - Notion database
+    /// `UserDefaults` keys for the Settings-editable values. `AppSettings` and
+    /// `Config` are the only things that touch these.
+    enum Key {
+        static let databaseID     = "notion.databaseID"
+        static let titleProperty  = "notion.titleProperty"
+        static let dateProperty   = "notion.dateProperty"
+        static let statusProperty = "notion.statusProperty"
+    }
 
-    /// The database ID — lives in `LocalConfig.swift` so a real id never lands
-    /// in git. Edit it there, then `git update-index --skip-worktree
-    /// PeekADo/LocalConfig.swift`.
-    static let databaseID = LocalConfig.databaseID
+    // MARK: - Settings-backed (read from UserDefaults, fall back to a default)
 
-    // MARK: - Property names — match these to YOUR database exactly
+    static var databaseID: String     { value(Key.databaseID,     or: "") }
+    static var titleProperty: String  { value(Key.titleProperty,  or: "Name") }
+    static var dateProperty: String   { value(Key.dateProperty,   or: "Due") }
+    static var statusProperty: String { value(Key.statusProperty, or: "Status") }
 
-    /// The `title`-type property holding the task name.
-    static let titleProperty = "Name"
-
-    /// The `date`-type property Peek-a-do filters on ("show me today").
-    static let dateProperty = "Due"
-
-    /// The property that tracks completion.
-    static let statusProperty = "Status"
+    // MARK: - Fixed constants (edit here if your DB differs)
 
     /// Is `statusProperty` a Notion **Status** field or a **Select** field?
-    /// The two have different JSON shapes, so Peek-a-do has to be told which.
-    ///
-    /// Note: Notion's API can only *create* Select properties, so if you want
-    /// Peek-a-do to add tasks, use a Select here (`.select`).
+    /// Notion's API can only *create* Select, so adding tasks needs `.select`.
     static let statusPropertyKind: StatusKind = .select
 
-    /// The value of `statusProperty` that means "finished".
+    /// The `statusProperty` value that means "finished".
     static let doneStatusValue = "Done"
 
-    /// Status applied to a task you create from the dropdown.
-    /// Set to `""` to create tasks with no status at all.
+    /// Status applied to a task created from the dropdown. `""` ⇒ no status set.
     static let newTaskStatusValue = "To do"
 
-    // MARK: - API
-
-    /// Notion's dated API version. Leave it unless Notion's changelog says otherwise.
+    /// Notion's dated API version.
     static let notionAPIVersion = "2022-06-28"
 
     enum StatusKind: String {
-        case status  // Notion "Status" property type
-        case select  // Notion "Select" property type
+        case status
+        case select
+    }
+
+    // MARK: -
+
+    private static func value(_ key: String, or fallback: String) -> String {
+        let stored = (UserDefaults.standard.string(forKey: key) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return stored.isEmpty ? fallback : stored
     }
 }

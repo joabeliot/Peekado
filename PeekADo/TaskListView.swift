@@ -60,6 +60,11 @@ final class TaskListModel: ObservableObject {
     /// Pulls today's tasks. Called every time the dropdown opens.
     func refresh() {
         hasToken = KeychainStore.readToken() != nil
+
+        guard !Config.databaseID.isEmpty else {
+            phase = .failed(NotionClient.ClientError.missingDatabaseID.localizedDescription)
+            return
+        }
         guard hasToken else {
             phase = .failed(NotionClient.ClientError.missingToken.localizedDescription)
             return
@@ -168,7 +173,6 @@ final class TaskListModel: ObservableObject {
         guard !token.isEmpty else { return }
         KeychainStore.saveToken(token)
         hasToken = true
-        refresh()
     }
 
     func removeToken() {
@@ -182,6 +186,7 @@ final class TaskListModel: ObservableObject {
 
 struct TaskListView: View {
     @StateObject private var model = TaskListModel()
+    @ObservedObject private var settings = AppSettings.shared
     @State private var showingSettings = false
     @State private var tokenField = ""
     @State private var newTaskTitle = ""
@@ -255,7 +260,7 @@ struct TaskListView: View {
     @ViewBuilder
     private var content: some View {
         if showingSettings {
-            settings
+            settingsPanel
         } else {
             switch model.phase {
             case .idle, .loading:
@@ -315,56 +320,98 @@ struct TaskListView: View {
 
     // MARK: Settings
 
-    private var settings: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Notion integration token")
-                .font(.callout).bold()
-            Text("Create an internal integration at notion.so/my-integrations, "
-                 + "share your task database with it, then paste the secret here. "
-                 + "It's stored in your Keychain.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+    private var settingsPanel: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
 
-            SecureField("secret_…", text: $tokenField)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
-                Button("Save") {
-                    model.saveToken(tokenField)
-                    tokenField = ""
-                    showingSettings = false
+                // ── Database ──────────────────────────────────
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Notion database").font(.callout).bold()
+                    settingField("Database ID", text: $settings.databaseID,
+                                 prompt: "32-hex id from the database URL")
+                    HStack(spacing: 6) {
+                        settingField("Title property", text: $settings.titleProperty, prompt: "Name")
+                        settingField("Date property", text: $settings.dateProperty, prompt: "Due")
+                    }
+                    settingField("Status property", text: $settings.statusProperty, prompt: "Status")
+                    Text("Status is read as a \(Config.statusPropertyKind.rawValue) field; "
+                         + "\"done\" means \"\(Config.doneStatusValue)\". Change those in Config.swift.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .keyboardShortcut(.defaultAction)
-                .disabled(tokenField.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                if model.hasToken {
-                    Button("Remove") { model.removeToken() }
+                Divider()
+
+                // ── Token ─────────────────────────────────────
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Integration token").font(.callout).bold()
+                    Text("From notion.so/my-integrations — share the database with it. Stored in your Keychain.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    SecureField(model.hasToken ? "•••••• saved — paste to replace" : "secret_… / ntn_…",
+                                text: $tokenField)
+                        .textFieldStyle(.roundedBorder)
+                    HStack {
+                        Text(model.hasToken ? "✓ token saved" : "no token yet")
+                            .font(.caption2)
+                            .foregroundStyle(model.hasToken ? Color.green : Color.secondary)
+                        Spacer()
+                        if model.hasToken {
+                            Button("Remove token") { model.removeToken() }
+                                .controlSize(.small)
+                        }
+                    }
                 }
-                Spacer()
+
+                Divider()
+
+                // ── Launch at login ───────────────────────────
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Start at login", isOn: Binding(
+                        get: { model.launchAtLogin },
+                        set: { model.setLaunchAtLogin($0) }
+                    ))
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+
+                    if model.launchNeedsApproval {
+                        Text("Approve Peek-A-Do in System Settings › General › Login Items.")
+                            .font(.caption2).foregroundStyle(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Divider()
+
+                HStack {
+                    Text("Toggle anywhere: ⌃⌥⌘Space")
+                        .font(.caption2).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Save") {
+                        settings.save()
+                        let pasted = tokenField.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !pasted.isEmpty {
+                            model.saveToken(pasted)
+                            tokenField = ""
+                        }
+                        model.refresh()
+                        showingSettings = false
+                    }
+                    .keyboardShortcut(.defaultAction)
+                }
             }
-
-            Text(model.hasToken ? "✓ A token is saved." : "No token saved yet.")
-                .font(.caption2)
-                .foregroundStyle(model.hasToken ? Color.green : Color.secondary)
-
-            Divider().padding(.vertical, 2)
-
-            Toggle("Start at login", isOn: Binding(
-                get: { model.launchAtLogin },
-                set: { model.setLaunchAtLogin($0) }
-            ))
-            .toggleStyle(.switch)
-            .controlSize(.small)
-
-            if model.launchNeedsApproval {
-                Text("Approve Peek-A-Do in System Settings › General › Login Items.")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            .padding(12)
         }
-        .padding(12)
+        .frame(maxHeight: 380)
+    }
+
+    private func settingField(_ label: String, text: Binding<String>, prompt: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            TextField(prompt, text: text)
+                .textFieldStyle(.roundedBorder)
+                .font(.callout)
+        }
     }
 
     // MARK: Footer
