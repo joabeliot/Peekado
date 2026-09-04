@@ -117,3 +117,13 @@ back on the profile. Schema-fetch 404 now reads friendly instead of raw JSON.
 Told JB: his first id was right; that DB just needs a Date + Status column in Notion.
 Loaded: none.
 Left open: JB adds Date/Status props to the new DB and re-detects.
+
+### 2026-09-04 (cont.) — JB / claude-code
+In-progress (and arbitrary) task statuses now surface in the dropdown:
+half-filled orange circle + "IN PROGRESS" badge; any other non-"to do" status
+gets a grey uppercase badge. `DatabaseProfile.inProgressValue` (auto-detected,
+regex `in.?progress|doing|wip|…`), mirrored to `Config.inProgressStatusValue`.
+Settings editor split status kind / values rows. Installed.
+Note: JB's pre-existing "Stablish" profile decoded with the default
+"In progress" — he should Re-detect it if his DB names it differently.
+Loaded: `features/{task-list,multi-database}.md`, `architecture/models.md`.

@@ -23,7 +23,7 @@ One configurable Notion database. `Codable`, `Identifiable`, `Equatable`.
 | `databaseID` | `String` | 32-hex Notion id; `isUsable` == non-empty |
 | `titleProperty` / `dateProperty` / `statusProperty` | `String` | per-DB property names |
 | `statusKind` | `String` | `"status"` or `"select"` |
-| `doneValue` / `newTaskValue` | `String` | option names; `newTaskValue` `""` ⇒ no status on create |
+| `doneValue` / `inProgressValue` / `newTaskValue` | `String` | option names; `newTaskValue` `""` ⇒ no status on create; `inProgressValue` drives the row badge only |
 
 Custom `init(from:)` — every field except `id` decodes with a fallback, so
 profiles from before the status fields existed still load.

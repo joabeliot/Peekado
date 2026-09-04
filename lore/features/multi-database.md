@@ -18,8 +18,9 @@ and fills in:
 - **title / date / status property** by property `type`; a name regex
   (`due|date…`, `status|state…`) breaks ties when there's more than one candidate
 - **status kind** from whether the property is `status` or `select`
-- **done / to-do values** by matching option names (`^(done|complete…)$`,
-  `^(to.?do|not started…)$`), else `"Done"` / first option
+- **done / in-progress / to-do values** by matching option names
+  (`^(done|complete…)$`, `^(in.?progress|doing|wip…)$`, `^(to.?do|not started…)$`),
+  else `"Done"` / `"In progress"` / first option
 
 Every field stays editable under each row's **Edit** disclosure.
 
