@@ -42,3 +42,12 @@ bottom (`TaskListModel.ordered`), and no longer vanish on check. Un-check has a
 `newTaskStatusValue` fallback. Decision: `decisions/show-done-tasks.md`.
 Loaded: `architecture/apis.md`, `architecture/overview.md`, `features/task-list.md`.
 Left open: unchanged (PKD-1, tests, CHANGELOG hook).
+
+### 2026-09-04 (cont.) — JB / claude-code
+Fixed `scripts/install.sh` (brace `${VAR}`, ASCII only — `set -u` choked on a
+multibyte char abutting `$DEST`). Then the standalone build 404'd because
+`Config.databaseID` was the placeholder from the history scrub: split it into
+`PeekADo/LocalConfig.swift` (ships as placeholder, pinned locally via
+`git update-index --skip-worktree`). Real id set on this machine; GitHub copy
+stays placeholder. Rebuilt + reinstalled — working.
+Loaded: `GUARDRAILS.md`.

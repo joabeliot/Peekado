@@ -5,8 +5,10 @@
   `ServiceManagement`. No third-party packages.
 - Secrets (the Notion token) go in the Keychain via `KeychainStore`. Never
   `UserDefaults`, never a file, never a source constant.
-- Non-secret config (database id, property names) lives in `Config.swift` as
-  constants, with a placeholder value committed — never a real id.
+- Property names and other non-secret config live in `Config.swift` as constants.
+  The one machine-specific value, `databaseID`, lives in `LocalConfig.swift`
+  (ships as a placeholder). Pin your real id with
+  `git update-index --skip-worktree PeekADo/LocalConfig.swift` — never commit it.
 - All UI state changes happen on the main actor. `TaskListModel` is `@MainActor`.
 - Network writes are optimistic: update the UI first, call Notion, roll back +
   `NSSound.beep()` on failure.
