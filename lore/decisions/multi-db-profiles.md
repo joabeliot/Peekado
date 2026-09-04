@@ -23,8 +23,12 @@ unchanged — they read the flat keys as before.
   boundary; would need a snapshot passed through every call site.
 - **A profile struct with its own token per DB** — JB confirmed one shared
   token; skip the complexity until a real multi-workspace need shows up.
-- **Per-profile `statusPropertyKind` / `doneStatusValue`** — not asked for;
-  they stay global `Config` constants.
+
+## Update 2026-09-04
+`statusKind` / `doneValue` / `newTaskValue` moved into `DatabaseProfile` after
+all (mirrored to new flat keys) — needed once "paste an id and auto-detect the
+schema" landed, since detection knows the real type + option names per DB.
+Only `notionAPIVersion` is still a hard-coded `Config` constant.
 
 ## Consequences
 - Two representations of the primary DB (the profile, and the mirrored flat

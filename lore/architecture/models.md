@@ -22,9 +22,15 @@ One configurable Notion database. `Codable`, `Identifiable`, `Equatable`.
 | `name` | `String` | user label, shown in the dropdown header when >1 profile |
 | `databaseID` | `String` | 32-hex Notion id; `isUsable` == non-empty |
 | `titleProperty` / `dateProperty` / `statusProperty` | `String` | per-DB property names |
+| `statusKind` | `String` | `"status"` or `"select"` |
+| `doneValue` / `newTaskValue` | `String` | option names; `newTaskValue` `""` ⇒ no status on create |
+
+Custom `init(from:)` — every field except `id` decodes with a fallback, so
+profiles from before the status fields existed still load.
 
 Stored as a JSON array in `UserDefaults["notion.profiles"]`; the primary one is
 mirrored field-by-field into the flat `Config.Key.*` keys by `AppSettings.persist()`.
+`NotionClient.fetchDatabaseSchema` populates one from a database id.
 
 ## Notion JSON — the shapes we parse (`NotionClient`)
 

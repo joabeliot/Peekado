@@ -85,3 +85,15 @@ launch-at-login moved from `TaskListModel` to `AppSettings`. Build green, instal
 Loaded: `architecture/{overview,models,apis}.md`, `GUARDRAILS.md`,
 `features/settings-config.md`, `ideas/distributable-app.md`.
 Left open: JB tries it; quick-switch from the icon; per-profile status config.
+
+### 2026-09-04 (cont.) — JB / claude-code
+"Paste an id, tool sets up the rest." `NotionClient.fetchDatabaseSchema` (static,
+`GET /v1/databases/{id}`) guesses title/date/status property + status kind +
+done/to-do option names; `SettingsView` has an "Add & set up" field + per-row
+"Re-detect" and an "Edit" disclosure for manual override. `DatabaseProfile`
+gained `statusKind`/`doneValue`/`newTaskValue` (lenient decoder for old data);
+`Config`'s status constants are now computed from mirrored flat keys. Built +
+installed. Not live-tested (JB rotated the token; can't curl).
+Loaded: `architecture/{apis,models}.md`, `GUARDRAILS.md`, `features/multi-database.md`,
+`decisions/multi-db-profiles.md`.
+Left open: JB tests detection against a real DB.

@@ -12,6 +12,12 @@
 - `Config.databaseID` / `titleProperty` / `dateProperty` / `statusProperty` are
   read from UserDefaults (set in the Settings panel via `AppSettings`).
 
+### `fetchDatabaseSchema(id:)` → `GET /databases/{id}` (static)
+Reads `properties` (a `{name: {type, …}}` map) + the db `title`. Picks the
+title/date/status property by `type`, the status kind from that type, and
+done/to-do option names by regex over the option list. Throws `.schema(String)`
+when a required property type is missing. Only needs the token (no instance).
+
 ### `fetchTodaysTasks()` → `POST /databases/{databaseID}/query`
 Body:
 ```json

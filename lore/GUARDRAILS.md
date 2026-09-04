@@ -11,8 +11,10 @@
   keys — it mirrors the primary profile there so `Config` / `NotionClient`
   (off-main-actor) keep reading them unchanged. Don't write `Config.Key.*`
   from anywhere else, and don't make `Config` depend on `AppSettings`.
-- `statusPropertyKind` / `doneStatusValue` / `newTaskStatusValue` /
-  `notionAPIVersion` are still global `Config` constants — edited in source.
+- `statusPropertyKind` / `doneStatusValue` / `newTaskStatusValue` are now
+  per-profile too (auto-detected from the DB schema), mirrored to
+  `Config.Key.statusKind` / `.doneValue` / `.newTaskValue`. Only
+  `notionAPIVersion` stays a hard `Config` constant.
 - Nothing real lands in git — `Config`'s defaults are generic, ids live only in
   UserDefaults.
 - All UI state changes happen on the main actor. `TaskListModel` is `@MainActor`.

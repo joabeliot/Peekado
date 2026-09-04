@@ -65,16 +65,16 @@ scripts/install.sh
 
 Click the icon → **gear** (opens the Settings window):
 
-- Under **Databases**, fill the first row: a **name**, the **Database ID** (from
-  the URL `notion.so/<workspace>/<DATABASE_ID>?v=…`), and your **Name / Due /
-  Status** property names. Add more rows with **+**; the radio button picks the
-  primary (the one that opens).
-- Paste the **integration token** from step 1 (shared by all databases).
+1. Paste the **integration token** from step 1 (shared by all databases) and Save.
+2. Under **Databases**, paste a **Database ID** (from the URL
+   `notion.so/<workspace>/<DATABASE_ID>?v=…`) into "Add & set up". Peek-A-Do
+   reads the database's schema from Notion and fills in the name, the
+   title/date/status properties, and what "done" is called. Repeat for more
+   databases; the **radio button** picks the primary (the one that opens).
+3. Wrong guess? Each row has **Edit** (manual override) and **Re-detect**.
 
 Stored per-user — token in Keychain, profiles as JSON in `UserDefaults`, nothing
-compiled in. If a status field isn't a Select, or "done" isn't called `Done`,
-change `statusPropertyKind` / `doneStatusValue` in `Config.swift` (these are
-global, not per-database).
+compiled in. Only `notionAPIVersion` is still a source constant.
 
 ### Build settings — already set
 
