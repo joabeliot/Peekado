@@ -5,10 +5,12 @@
   `ServiceManagement`. No third-party packages.
 - Secrets (the Notion token) go in the Keychain via `KeychainStore`. Never
   `UserDefaults`, never a file, never a source constant.
-- Property names and other non-secret config live in `Config.swift` as constants.
-  The one machine-specific value, `databaseID`, lives in `LocalConfig.swift`
-  (ships as a placeholder). Pin your real id with
-  `git update-index --skip-worktree PeekADo/LocalConfig.swift` — never commit it.
+- Runtime config (`databaseID`, `titleProperty`, `dateProperty`,
+  `statusProperty`) is entered in the Settings panel and stored in
+  `UserDefaults` under `Config.Key.*`. `AppSettings` is the UI mirror; `Config`
+  reads the keys back. Nothing real lands in git — `Config`'s defaults are
+  generic. The remaining `Config` constants (`statusPropertyKind`,
+  `doneStatusValue`, `newTaskStatusValue`, `notionAPIVersion`) are edited in source.
 - All UI state changes happen on the main actor. `TaskListModel` is `@MainActor`.
 - Network writes are optimistic: update the UI first, call Notion, roll back +
   `NSSound.beep()` on failure.
@@ -27,7 +29,11 @@
 ## Conventions
 - Bundle id / Keychain service: `app.arque.peekado`.
 - Deployment target: macOS 13.0. Swift language version 5.
-- One type per concern, ~6 source files. Resist splitting further.
+- Menu bar is `NSStatusItem` + `NSPopover` in `AppDelegate` — **not**
+  `MenuBarExtra` (it can't be toggled from code). Don't reintroduce it.
+- The toggle hotkey is two constants at the top of `AppDelegate`
+  (`hotKeyCode`, `hotKeyModifiers`). `GlobalHotKey` is Carbon, no permission.
+- One type per concern. Resist splitting further.
 - Xcode project is hand-written (`objectVersion 77`, file-system synchronized
   group). Adding a file to `PeekADo/` is enough — no pbxproj edit needed.
 - Property-name and status-value assumptions are all funnelled through `Config`.

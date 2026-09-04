@@ -8,16 +8,17 @@ repo and install" is *not* true today — it needs Xcode and a hand-edit of
 ## Today's gap
 - No prebuilt binary. Personal-team builds trip Gatekeeper ("unidentified
   developer" / "damaged").
-- Database id + property names are compile-time constants in `Config.swift`.
-  Only the token is runtime-configurable.
 - No packaging (`.dmg` / Homebrew cask / GitHub Release artifact).
+- ~~Database id + property names are compile-time constants~~ — **done**
+  2026-09-04: `databaseID` + property names are Settings fields backed by
+  UserDefaults (`features/settings-config.md`). `statusPropertyKind` /
+  `doneStatusValue` / `newTaskStatusValue` are still `Config` constants — expose
+  them too if a real user needs them.
+- No in-app hotkey rebind (two constants in `AppDelegate` for now).
 
 ## Rough plan (in order of pain)
-1. **In-app config.** Move `databaseID`, `titleProperty`, `dateProperty`,
-   `statusProperty`, `statusPropertyKind`, `doneStatusValue`,
-   `newTaskStatusValue` into the Settings panel, persisted per-user
-   (`UserDefaults` is fine — none of it is secret; token stays in Keychain).
-   `Config` becomes defaults / fallbacks. ~1 evening.
+1. ~~**In-app config.**~~ Mostly done — see above. Remaining: the three status
+   constants, and a hotkey key-recorder.
 2. **Signing + notarization.** Requires the paid Apple Developer Program
    ($99/yr). Add `codesign --options runtime` + `notarytool submit` + `stapler`
    to `scripts/` (a `release.sh` alongside `install.sh`).

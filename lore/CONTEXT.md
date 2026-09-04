@@ -2,8 +2,8 @@
 
 **Focus:** v1 in daily use. Small polish as JB asks for it.
 **Phase:** Alpha (personal daily driver)
-**Open:** PKD-1 (distributable for non-devs) — backlog. No tests. No CHANGELOG git hook. `OG.md` + `MISSION.md` unwritten.
-**Next:** Nothing scheduled. Revisit when v1 breaks or distribution becomes a goal.
+**Open:** JB to confirm the toggle hotkey + popover work on his machine. PKD-1 (distributable) — backlog, config half done. No tests. No CHANGELOG hook. `OG.md` + `MISSION.md` unwritten.
+**Next:** Nothing scheduled beyond the hotkey confirmation.
 
 ---
 
@@ -46,8 +46,19 @@ Left open: unchanged (PKD-1, tests, CHANGELOG hook).
 ### 2026-09-04 (cont.) — JB / claude-code
 Fixed `scripts/install.sh` (brace `${VAR}`, ASCII only — `set -u` choked on a
 multibyte char abutting `$DEST`). Then the standalone build 404'd because
-`Config.databaseID` was the placeholder from the history scrub: split it into
-`PeekADo/LocalConfig.swift` (ships as placeholder, pinned locally via
-`git update-index --skip-worktree`). Real id set on this machine; GitHub copy
-stays placeholder. Rebuilt + reinstalled — working.
+`Config.databaseID` was the placeholder from the history scrub: briefly split it
+into `LocalConfig.swift` + skip-worktree.
 Loaded: `GUARDRAILS.md`.
+
+### 2026-09-04 (cont.) — JB / claude-code
+Big one. (a) Global toggle hotkey: `GlobalHotKey.swift` (Carbon
+`RegisterEventHotKey`, no permission), default ⌃⌥⌘Space, opens/closes the
+dropdown from anywhere. (b) To make that possible, replaced `MenuBarExtra` with
+`AppDelegate` + `NSStatusItem` + `NSPopover` (`decisions/nsstatusitem-over-menubarextra.md`).
+(c) `databaseID` + property names moved from source into the Settings panel /
+UserDefaults (`AppSettings.swift`, `features/settings-config.md`);
+`LocalConfig.swift` deleted, skip-worktree gone. Migrated JB's real id into the
+app's UserDefaults via `defaults write`. Build green, installed.
+Loaded: `architecture/{overview,apis}.md`, `GUARDRAILS.md`, `ideas/distributable-app.md`,
+`decisions/token-in-keychain.md`.
+Left open: JB confirms hotkey+popover feel right; PKD-1.

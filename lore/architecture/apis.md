@@ -6,8 +6,11 @@
 - **Auth:** `Authorization: Bearer <internal integration token>` — from Keychain.
 - **Version header:** `Notion-Version: 2022-06-28` (`Config.notionAPIVersion`).
 - **Content-Type:** `application/json` on every request.
-- All calls go through `NotionClient`. `init()` throws `.missingToken` if the
-  Keychain has none.
+- All calls go through `NotionClient`. `init()` throws `.missingDatabaseID` if
+  `Config.databaseID` (a UserDefaults value set in Settings) is empty, then
+  `.missingToken` if the Keychain has none.
+- `Config.databaseID` / `titleProperty` / `dateProperty` / `statusProperty` are
+  read from UserDefaults (set in the Settings panel via `AppSettings`).
 
 ### `fetchTodaysTasks()` → `POST /databases/{databaseID}/query`
 Body:
@@ -51,6 +54,10 @@ Status key omitted when `newTaskStatusValue == ""`.
 ## System APIs
 - **Keychain** (`Security`): one generic-password item, service `app.arque.peekado`,
   account `notion-integration-token`, accessible `AfterFirstUnlock`.
+- **UserDefaults**: `notion.databaseID`, `notion.titleProperty`,
+  `notion.dateProperty`, `notion.statusProperty` (keys on `Config.Key`).
 - **ServiceManagement**: `SMAppService.mainApp` for the login item. `.status`
   can be `.enabled`, `.requiresApproval` (needs System Settings › Login Items),
   `.notRegistered`.
+- **Carbon.HIToolbox**: `RegisterEventHotKey` / `InstallEventHandler` for the
+  global toggle hotkey. No entitlement, no Accessibility permission.
