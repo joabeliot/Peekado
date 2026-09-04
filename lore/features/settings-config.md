@@ -1,19 +1,20 @@
 # Feature: Settings-based Notion config
 
-**Status:** Done
+**Status:** Done — superseded in detail by `multi-database.md` (the config is now
+a list of profiles, and Settings is a window). Kept for the "why config left
+source" rationale.
 
 ## What It Does
-The Settings panel (gear) now holds the whole Notion setup, not just the token:
+The Settings window (gear, or right-click the menu bar icon) holds the whole
+Notion setup — no more editing source:
 
-- **Database ID** + **Title / Date / Status property names** — text fields bound
-  to `AppSettings` (`@Published`), persisted to `UserDefaults` on **Save** under
-  `Config.Key.*`. `Config` reads those keys back (thread-safe, so `NotionClient`
-  off the main actor is fine). Empty `databaseID` → `refresh()` shows
-  "add it in Settings" instead of hitting Notion.
-- **Integration token** — unchanged, still Keychain via `KeychainStore`.
-- **Start at login** — unchanged (`SMAppService`).
+- **Database profiles** — see `features/multi-database.md`. Each has a database
+  id + title/date/status property names.
+- **Integration token** — Keychain via `KeychainStore` / `AppSettings`.
+- **Start at login** — `SMAppService`.
 
-One **Save** button persists everything and calls `refresh()`.
+Everything persists as it's edited (`AppSettings` `didSet`). Empty primary
+`databaseID` → the dropdown shows `.missingDatabaseID` + an "Open Settings" button.
 
 ## Why
 Editing `Config.swift` (or the old `LocalConfig.swift` + skip-worktree) to point

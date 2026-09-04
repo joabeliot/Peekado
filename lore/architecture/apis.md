@@ -54,8 +54,10 @@ Status key omitted when `newTaskStatusValue == ""`.
 ## System APIs
 - **Keychain** (`Security`): one generic-password item, service `app.arque.peekado`,
   account `notion-integration-token`, accessible `AfterFirstUnlock`.
-- **UserDefaults**: `notion.databaseID`, `notion.titleProperty`,
-  `notion.dateProperty`, `notion.statusProperty` (keys on `Config.Key`).
+- **UserDefaults**: `notion.profiles` (JSON `[DatabaseProfile]`, authoritative) +
+  `notion.primaryProfileID`. `AppSettings.persist()` mirrors the primary into the
+  flat `Config.Key.*` keys (`notion.databaseID`, `notion.titleProperty`,
+  `notion.dateProperty`, `notion.statusProperty`) which `Config` reads.
 - **ServiceManagement**: `SMAppService.mainApp` for the login item. `.status`
   can be `.enabled`, `.requiresApproval` (needs System Settings › Login Items),
   `.notRegistered`.

@@ -12,6 +12,20 @@
 
 `Identifiable`, `Equatable`. Named `TodoTask` — **not** `Task` (Swift concurrency clash).
 
+## `DatabaseProfile` (`DatabaseProfile.swift`)
+
+One configurable Notion database. `Codable`, `Identifiable`, `Equatable`.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `UUID` | stable; `primaryID` points at one of these |
+| `name` | `String` | user label, shown in the dropdown header when >1 profile |
+| `databaseID` | `String` | 32-hex Notion id; `isUsable` == non-empty |
+| `titleProperty` / `dateProperty` / `statusProperty` | `String` | per-DB property names |
+
+Stored as a JSON array in `UserDefaults["notion.profiles"]`; the primary one is
+mirrored field-by-field into the flat `Config.Key.*` keys by `AppSettings.persist()`.
+
 ## Notion JSON — the shapes we parse (`NotionClient`)
 
 - **Title:** `properties[titleProperty].title[] → .plain_text` (also falls back to `.rich_text`).

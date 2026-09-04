@@ -10,15 +10,15 @@ repo and install" is *not* true today — it needs Xcode and a hand-edit of
   developer" / "damaged").
 - No packaging (`.dmg` / Homebrew cask / GitHub Release artifact).
 - ~~Database id + property names are compile-time constants~~ — **done**
-  2026-09-04: `databaseID` + property names are Settings fields backed by
-  UserDefaults (`features/settings-config.md`). `statusPropertyKind` /
-  `doneStatusValue` / `newTaskStatusValue` are still `Config` constants — expose
-  them too if a real user needs them.
-- No in-app hotkey rebind (two constants in `AppDelegate` for now).
+  2026-09-04: full multi-database config in a Settings window
+  (`features/multi-database.md`). `statusPropertyKind` / `doneStatusValue` /
+  `newTaskStatusValue` are still global `Config` constants — expose per-profile
+  if a real user needs it.
+- No in-app hotkey rebind (one constant in `AppDelegate` for now).
 
 ## Rough plan (in order of pain)
-1. ~~**In-app config.**~~ Mostly done — see above. Remaining: the three status
-   constants, and a hotkey key-recorder.
+1. ~~**In-app config.**~~ Done — multi-DB Settings window. Remaining: per-profile
+   status constants, and a hotkey key-recorder.
 2. **Signing + notarization.** Requires the paid Apple Developer Program
    ($99/yr). Add `codesign --options runtime` + `notarytool submit` + `stapler`
    to `scripts/` (a `release.sh` alongside `install.sh`).

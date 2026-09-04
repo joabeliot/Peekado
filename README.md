@@ -18,17 +18,22 @@ No Dock icon, no window — just a checklist glyph in the menu bar.
 - Click a row to mark it done — optimistic, then `PATCH` to Notion, rolls back
   with a beep on failure.
 - Refreshes every time you open it. No background polling.
-- Gear → Settings: database ID, property names, integration token, "Start at login".
+- **Multiple databases** — add several in Settings, radio-select which is
+  primary; the primary opens by default and you can switch anytime.
+- Gear (or right-click the icon) → Settings **window**: databases, integration
+  token, "Start at login".
 
 ## Files
 
 | File | Role |
 | --- | --- |
 | `PeekADo/PeekADoApp.swift` | `@main` — hands off to `AppDelegate` |
-| `PeekADo/AppDelegate.swift` | Menu bar item, popover, toggle gesture |
+| `PeekADo/AppDelegate.swift` | Menu bar item, popover, Settings window, toggle gesture |
 | `PeekADo/DoubleTapMonitor.swift` | Global monitor: double-tap a modifier |
-| `PeekADo/AppSettings.swift` | Settings values ↔ `UserDefaults` |
-| `PeekADo/Config.swift` | Reads settings back + fixed constants |
+| `PeekADo/AppSettings.swift` | `[DatabaseProfile]` + primary + token + login, ↔ `UserDefaults` |
+| `PeekADo/DatabaseProfile.swift` | One database's id + property names |
+| `PeekADo/SettingsView.swift` | The Settings window UI |
+| `PeekADo/Config.swift` | Reads the mirrored flat keys + fixed constants |
 | `PeekADo/TaskModel.swift` | `TodoTask` value type |
 | `PeekADo/KeychainStore.swift` | Notion token in the Keychain |
 | `PeekADo/NotionClient.swift` | `URLSession` calls: query database, patch/create page |
@@ -58,16 +63,18 @@ scripts/install.sh
 
 ### 3. Configure it (in the app)
 
-Click the icon → **gear**:
+Click the icon → **gear** (opens the Settings window):
 
-- **Database ID** — from the database URL: `notion.so/<workspace>/<DATABASE_ID>?v=…`
-- **Title / Date / Status property** — match your database's column names
-- **Integration token** — paste the secret from step 1
-- **Save**
+- Under **Databases**, fill the first row: a **name**, the **Database ID** (from
+  the URL `notion.so/<workspace>/<DATABASE_ID>?v=…`), and your **Name / Due /
+  Status** property names. Add more rows with **+**; the radio button picks the
+  primary (the one that opens).
+- Paste the **integration token** from step 1 (shared by all databases).
 
-All of this is stored per-user (token in Keychain, the rest in `UserDefaults`) —
-nothing is compiled in. If your status field isn't a Select, or "done" isn't
-called `Done`, change `statusPropertyKind` / `doneStatusValue` in `Config.swift`.
+Stored per-user — token in Keychain, profiles as JSON in `UserDefaults`, nothing
+compiled in. If a status field isn't a Select, or "done" isn't called `Done`,
+change `statusPropertyKind` / `doneStatusValue` in `Config.swift` (these are
+global, not per-database).
 
 ### Build settings — already set
 
@@ -80,5 +87,7 @@ called `Done`, change `statusPropertyKind` / `doneStatusValue` in `Config.swift`
 
 - Background refresh / notifications
 - Multiple dates ("this week"), manual ordering
+- Quick-switch the primary database from the menu bar icon (Settings only for now)
+- Per-database status type / "done" value (currently global in `Config.swift`)
 - Signed + notarized build for non-developers (see `lore/ideas/distributable-app.md`)
 - In-app hotkey rebind

@@ -7,27 +7,36 @@ A single-target macOS app. No backend of our own; Notion is the datastore.
 ```
 PeekADoApp (@main, App)           scene is an empty Settings{} — never shows
   └─ @NSApplicationDelegateAdaptor AppDelegate
-       ├─ NSStatusItem            the "checklist" menu bar button
+       ├─ NSStatusItem            "checklist" button — left-click toggles,
+       │                          right-click → Settings… / Quit menu
        ├─ NSPopover (.transient)  hosts TaskListView via NSHostingController
+       ├─ NSWindow (lazy)         hosts SettingsView — showSettings()
        └─ DoubleTapMonitor        global NSEvent .flagsChanged monitor →
                                   togglePopover() on double-tap Control
 
-TaskListView (SwiftUI)
-  ├─ TaskListModel   @MainActor ObservableObject — all task state + orchestration
-  ├─ AppSettings     @MainActor singleton ObservableObject — UI mirror of the
-  │                  UserDefaults config keys; Settings-panel bindings
+TaskListView (SwiftUI)            gets an onOpenSettings closure from AppDelegate
+  ├─ TaskListModel   @MainActor ObservableObject — task state + orchestration
+  ├─ AppSettings     @MainActor singleton — [DatabaseProfile] + primaryID,
+  │                  token presence, launch-at-login. Persists to UserDefaults;
+  │                  mirrors the primary profile into the flat Config.Key.* keys.
   └─ NotionClient    struct, stateless bar the token — the only network code
        └─ KeychainStore   enum — the Notion token, generic-password item
 
-Config    enum — reads the Settings-backed values out of UserDefaults
+SettingsView (SwiftUI, in the NSWindow) — radio list of DatabaseProfiles
+  (add/remove/rename/edit), shared token, Start at login.
+
+Config    enum — reads the mirrored flat keys out of UserDefaults
           (databaseID, {title,date,status}Property) + fixed constants
           (statusPropertyKind, doneStatusValue, newTaskStatusValue, apiVersion)
-TodoTask  struct — the one model type
+DatabaseProfile  struct (Codable) — one Notion DB's id + property names
+TodoTask         struct — the one task model type
 ```
 
-`MenuBarExtra` was dropped for `NSStatusItem` + `NSPopover` because it has no
-API to open/close its panel — the toggle gesture needs that. See
-`decisions/nsstatusitem-over-menubarextra.md` and `decisions/double-tap-toggle.md`.
+`MenuBarExtra` was dropped for `NSStatusItem` + `NSPopover` (no API to
+open/close its panel). Settings is a hand-built `NSWindow`, not a SwiftUI
+`Settings` scene. See `decisions/nsstatusitem-over-menubarextra.md`,
+`decisions/double-tap-toggle.md`, `decisions/settings-window.md`,
+`decisions/multi-db-profiles.md`.
 
 ## Flow
 
@@ -46,9 +55,12 @@ API to open/close its panel — the toggle gesture needs that. See
 - **Toggle (double-tap Control, or click the menu bar icon) → `AppDelegate.togglePopover`.**
   Shown → `performClose`. Hidden → `NSApp.activate` + `popover.show(relativeTo:)`
   + make the popover window key so its text fields take input.
-- **Settings panel** (gear): edit `databaseID` + property names (→ `AppSettings.save`
-  → UserDefaults), paste token (→ `KeychainStore.saveToken`), "Start at login"
-  (→ `SMAppService`). "Save" persists all of it and calls `refresh()`.
+- **Settings window** (gear, or right-click the icon): edit database profiles
+  (each write → `AppSettings` `didSet` → persist JSON + re-mirror the primary
+  into the flat keys), radio-select the primary, paste token
+  (→ `AppSettings.saveToken` → Keychain), "Start at login" (→ `SMAppService`).
+  Switching primary fires `.onChange(of: settings.primaryID)` in an open
+  dropdown → `refresh()`.
 
 ## State machine (`TaskListModel.Phase`)
 

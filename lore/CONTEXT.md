@@ -1,9 +1,9 @@
 # Context
 
-**Focus:** v1 in daily use. Small polish as JB asks for it.
+**Focus:** v1 in daily use, growing on request. Just shipped multi-DB + a real Settings window.
 **Phase:** Alpha (personal daily driver)
-**Open:** JB to confirm the toggle hotkey + popover work on his machine. PKD-1 (distributable) — backlog, config half done. No tests. No CHANGELOG hook. `OG.md` + `MISSION.md` unwritten.
-**Next:** Nothing scheduled beyond the hotkey confirmation.
+**Open:** JB to confirm double-tap toggle (needs Accessibility grant) + the new Settings window + multi-DB. PKD-1 (distributable) — backlog. No tests. No CHANGELOG hook. `OG.md` + `MISSION.md` unwritten.
+**Next:** Nothing scheduled. Possible: quick-switch primary from the menu bar icon; per-profile status config.
 
 ---
 
@@ -71,3 +71,17 @@ another app (`RegisterEventHotKey` fails silently). Swapped it for
 Accessibility permission; `AppDelegate` prompts on launch, menu bar click is the
 fallback. Built + installed. JB needs to grant Accessibility, then test.
 Loaded: `architecture/{overview,apis}.md`, `GUARDRAILS.md`, `features/global-hotkey.md`.
+
+### 2026-09-04 (cont.) — JB / claude-code
+Multi-database. `DatabaseProfile` (Codable: name + db id + property names);
+`AppSettings` rebuilt around `[DatabaseProfile]` + `primaryID`, JSON in
+UserDefaults, mirrors the primary into the flat `Config.Key.*` keys so
+`Config`/`NotionClient` are untouched (`decisions/multi-db-profiles.md`). Old
+single flat config auto-migrates to one profile on launch (verified on JB's
+install → "My tasks"). Settings became a real `NSWindow` hosted by `AppDelegate`
+(`decisions/settings-window.md`) with a radio-select profile list; the inline
+popover panel is gone. Right-click the menu bar icon → Settings…/Quit. Token +
+launch-at-login moved from `TaskListModel` to `AppSettings`. Build green, installed.
+Loaded: `architecture/{overview,models,apis}.md`, `GUARDRAILS.md`,
+`features/settings-config.md`, `ideas/distributable-app.md`.
+Left open: JB tries it; quick-switch from the icon; per-profile status config.

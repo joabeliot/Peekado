@@ -5,12 +5,16 @@
   `ServiceManagement`. No third-party packages.
 - Secrets (the Notion token) go in the Keychain via `KeychainStore`. Never
   `UserDefaults`, never a file, never a source constant.
-- Runtime config (`databaseID`, `titleProperty`, `dateProperty`,
-  `statusProperty`) is entered in the Settings panel and stored in
-  `UserDefaults` under `Config.Key.*`. `AppSettings` is the UI mirror; `Config`
-  reads the keys back. Nothing real lands in git — `Config`'s defaults are
-  generic. The remaining `Config` constants (`statusPropertyKind`,
-  `doneStatusValue`, `newTaskStatusValue`, `notionAPIVersion`) are edited in source.
+- Runtime config is `[DatabaseProfile]` + `primaryID` in `AppSettings`, stored
+  as JSON in `UserDefaults` (`notion.profiles` / `notion.primaryProfileID`).
+  `AppSettings.persist()` is the **only** writer of the flat `Config.Key.*`
+  keys — it mirrors the primary profile there so `Config` / `NotionClient`
+  (off-main-actor) keep reading them unchanged. Don't write `Config.Key.*`
+  from anywhere else, and don't make `Config` depend on `AppSettings`.
+- `statusPropertyKind` / `doneStatusValue` / `newTaskStatusValue` /
+  `notionAPIVersion` are still global `Config` constants — edited in source.
+- Nothing real lands in git — `Config`'s defaults are generic, ids live only in
+  UserDefaults.
 - All UI state changes happen on the main actor. `TaskListModel` is `@MainActor`.
 - Network writes are optimistic: update the UI first, call Notion, roll back +
   `NSSound.beep()` on failure.
@@ -31,6 +35,8 @@
 - Deployment target: macOS 13.0. Swift language version 5.
 - Menu bar is `NSStatusItem` + `NSPopover` in `AppDelegate` — **not**
   `MenuBarExtra` (it can't be toggled from code). Don't reintroduce it.
+- Settings is an `NSWindow` built in `AppDelegate.showSettings()`, not a SwiftUI
+  `Settings` scene. `TaskListView` reaches it via the injected `onOpenSettings`.
 - The toggle is double-tap Control (`DoubleTapMonitor`), rebind via
   `toggleModifier` in `AppDelegate`. Needs Accessibility permission.
 - One type per concern. Resist splitting further.
