@@ -107,4 +107,13 @@ the view runs the same per-row `detect` so the error lands on the row and expand
 it; the summary line now shows the error / "not set up" when the profile isn't
 really configured. Installed.
 Loaded: none.
-Left open: nothing pressing.
+
+### 2026-09-04 (cont.) — JB / claude-code
+JB hit the URL confusion: pasted the `?v=` view id (404), then found his empty
+"New database" (only a Name column → "no date property"). Added
+`NotionClient.canonicalDatabaseID` — accepts a full pasted Notion URL / dashed
+UUID / bare id, strips the `?v=` view id, used on detect+query+create and stored
+back on the profile. Schema-fetch 404 now reads friendly instead of raw JSON.
+Told JB: his first id was right; that DB just needs a Date + Status column in Notion.
+Loaded: none.
+Left open: JB adds Date/Status props to the new DB and re-detects.

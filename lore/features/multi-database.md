@@ -9,9 +9,11 @@ to-do values). The **primary** profile — chosen by a radio button in the
 Settings window — is the one the dropdown shows. Switch primary anytime; an open
 dropdown re-fetches immediately (`.onChange(of: settings.primaryID)`).
 
-### Adding one — paste the id, that's it
-"Add & set up" (or a row's "Re-detect") calls `NotionClient.fetchDatabaseSchema`
-→ `GET /v1/databases/{id}` and fills in:
+### Adding one — paste the id (or the whole URL), that's it
+`NotionClient.canonicalDatabaseID` strips a pasted full Notion URL / the `?v=`
+view id / dashes down to the bare 32-hex id first. Then "Add & set up" (or a
+row's "Re-detect") calls `NotionClient.fetchDatabaseSchema` → `GET /v1/databases/{id}`
+and fills in:
 - **name** from the database title
 - **title / date / status property** by property `type`; a name regex
   (`due|date…`, `status|state…`) breaks ties when there's more than one candidate
