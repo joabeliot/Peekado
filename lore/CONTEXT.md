@@ -97,3 +97,14 @@ installed. Not live-tested (JB rotated the token; can't curl).
 Loaded: `architecture/{apis,models}.md`, `GUARDRAILS.md`, `features/multi-database.md`,
 `decisions/multi-db-profiles.md`.
 Left open: JB tests detection against a real DB.
+
+### 2026-09-04 (cont.) — JB / claude-code
+Settings became tabbed (Databases / Notion / General — `TabView`, fixed 480×540).
+JB tested auto-detect: "Stablish" DB detected clean; a second DB failed with
+"no date property" (genuinely has none) but the row still showed a fake
+Name·Due·Status recap. Fixed: `addProfile(databaseID:)` is sync + returns the id,
+the view runs the same per-row `detect` so the error lands on the row and expands
+it; the summary line now shows the error / "not set up" when the profile isn't
+really configured. Installed.
+Loaded: none.
+Left open: nothing pressing.
