@@ -5,9 +5,9 @@
 ## What It Does
 The dropdown's core. On every open it queries Notion for pages due today (Done
 included) and shows them in a `List` — a status glyph, the title, an optional
-status badge, an optional time on the right. Open tasks sort first (by time),
-completed last. Clicking a row **advances its status** one step around
-`TaskListModel.statusCycle()` — `to do → in progress → done → to do`
+status badge, an optional time on the right. The list is grouped by tier — **to-do → in progress → done**, then by time
+(`TaskListModel.ordered` / `rank`). Clicking a row **advances its status** one
+step around `TaskListModel.statusCycle()` — `to do → in progress → done → to do`
 (`[newTaskValue, inProgressValue, doneValue]`, deduped, empties dropped; an
 unrecognised current status jumps straight to done). Optimistic
 (`NotionClient.setStatus`), reverts + beeps on failure. Footer shows "X of Y done".
@@ -27,8 +27,8 @@ unrecognised current status jumps straight to done). Optimistic
 - Zero tasks → "Nothing on deck 🎉". Footer summary hides when the list is empty.
 - No token → error state pointing at Settings.
 - Re-opening with a list already loaded doesn't flash the spinner.
-- Checking a task keeps it visible (struck through); it stays on the next fetch
-  as a Done row. List only re-sorts on refresh, not on the toggle itself.
+- Advancing a task re-sorts the list right away (animated) so it moves into its
+  new tier; the row doesn't stay in place.
 - Un-checking: restores `originalStatus`; if that was already `Done` or empty,
   falls back to `Config.newTaskStatusValue`.
 

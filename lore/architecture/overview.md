@@ -43,12 +43,12 @@ open/close its panel). Settings is a hand-built `NSWindow`, not a SwiftUI
 - **Open dropdown → `TaskListView.onAppear` → `model.refresh()`**
   `NotionClient.fetchTodaysTasks()` → `POST /v1/databases/{id}/query` filtered on
   `Due == today` only (Done included) → parse `results` → `TaskListModel.ordered`
-  (open first by time, done last) → `phase = .loaded([...])`. Spinner only shows
+  (tier: to-do → in progress → done, then by time) → `phase = .loaded([...])`. Spinner only shows
   when there's nothing already on screen. Footer shows `model.summary` ("X of Y done").
 - **Click a row → `model.advance` steps its status one step around
-  `statusCycle()` locally → `.loaded` re-emitted → `NotionClient.setStatus()` →
-  `PATCH /v1/pages/{id}`.** On error: revert + beep. Rows with a `temp-` id
-  (not yet saved) ignore clicks.
+  `statusCycle()`, re-sorts the list (animated, regrouping to-do / in progress /
+  done) → `NotionClient.setStatus()` → `PATCH /v1/pages/{id}`.** On error: revert
+  + beep. Rows with a `temp-` id (not yet saved) ignore clicks.
 - **Add field submit → `model.addTask` inserts an optimistic `temp-` row →
   `NotionClient.createTask()` → `POST /v1/pages` (Due = today, Status =
   `Config.newTaskStatusValue`) → `refresh()` swaps in server truth.** On error:
@@ -78,5 +78,4 @@ permission (prompted on launch); no entitlement.
 ## Deliberately absent
 
 Background polling, notifications, caching/persistence, multi-day views.
-Reordering the list on toggle (only on refresh — checking a box strikes it
-through in place). In-app rebind of the toggle modifier.
+In-app rebind of the toggle modifier.

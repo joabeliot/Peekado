@@ -134,3 +134,9 @@ to do → in progress → done (`TaskListModel.statusCycle` / `advance`). `setDo
 → `setStatus(pageID:value:)` (can also null the field). `TodoTask.originalStatus`
 is now `var`. Installed.
 Loaded: `features/task-list.md`, `architecture/apis.md`.
+
+### 2026-09-04 (cont.) — JB / claude-code
+Reorder-on-click: `ordered()` now tiers to-do (0) → in progress (1) → done (2)
+then time, and `advance()` re-sorts (animated) after each click — the row moves
+to its group instead of staying put. Reverses the earlier "no reorder on toggle"
+call. Installed.
