@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import ServiceManagement
 
 // MARK: - Model
 
@@ -15,7 +14,6 @@ final class TaskListModel: ObservableObject {
     }
 
     @Published private(set) var phase: Phase = .idle
-    @Published var hasToken: Bool = KeychainStore.readToken() != nil
     @Published private(set) var isAdding = false
 
     /// Footer summary, e.g. "1 of 3 done". `nil` when there's nothing to count.
@@ -24,48 +22,15 @@ final class TaskListModel: ObservableObject {
         return "\(tasks.filter(\.done).count) of \(tasks.count) done"
     }
 
-    /// `true` once macOS will launch Peek-A-Do at login.
-    @Published private(set) var launchAtLogin = false
-    /// `true` when the login item is registered but the user still has to
-    /// approve it in System Settings › General › Login Items.
-    @Published private(set) var launchNeedsApproval = false
-
     private static let tempPrefix = "temp-"
-
-    init() {
-        refreshLaunchState()
-    }
-
-    // MARK: - Launch at login
-
-    func refreshLaunchState() {
-        let status = SMAppService.mainApp.status
-        launchAtLogin = status == .enabled
-        launchNeedsApproval = status == .requiresApproval
-    }
-
-    func setLaunchAtLogin(_ enabled: Bool) {
-        do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-        } catch {
-            NSSound.beep()
-        }
-        refreshLaunchState()
-    }
 
     /// Pulls today's tasks. Called every time the dropdown opens.
     func refresh() {
-        hasToken = KeychainStore.readToken() != nil
-
         guard !Config.databaseID.isEmpty else {
             phase = .failed(NotionClient.ClientError.missingDatabaseID.localizedDescription)
             return
         }
-        guard hasToken else {
+        guard KeychainStore.readToken() != nil else {
             phase = .failed(NotionClient.ClientError.missingToken.localizedDescription)
             return
         }
@@ -168,18 +133,6 @@ final class TaskListModel: ObservableObject {
         }
     }
 
-    func saveToken(_ raw: String) {
-        let token = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !token.isEmpty else { return }
-        KeychainStore.saveToken(token)
-        hasToken = true
-    }
-
-    func removeToken() {
-        KeychainStore.deleteToken()
-        hasToken = false
-        phase = .failed(NotionClient.ClientError.missingToken.localizedDescription)
-    }
 }
 
 // MARK: - View
@@ -187,28 +140,25 @@ final class TaskListModel: ObservableObject {
 struct TaskListView: View {
     @StateObject private var model = TaskListModel()
     @ObservedObject private var settings = AppSettings.shared
-    @State private var showingSettings = false
-    @State private var tokenField = ""
     @State private var newTaskTitle = ""
     @FocusState private var addFieldFocused: Bool
+
+    /// Opens the Settings window — supplied by `AppDelegate`.
+    let onOpenSettings: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider()
-            if !showingSettings {
-                addField
-                Divider()
-            }
+            addField
+            Divider()
             content.frame(minHeight: 90)
             Divider()
             footer
         }
         .frame(width: 320)
-        .onAppear {
-            model.refresh()
-            model.refreshLaunchState()
-        }
+        .onAppear { model.refresh() }
+        .onChange(of: settings.primaryID) { _ in model.refresh() }
     }
 
     // MARK: Add task
@@ -239,17 +189,20 @@ struct TaskListView: View {
     // MARK: Header
 
     private var header: some View {
-        HStack {
-            Text(showingSettings ? "Settings" : "Peek-A-Do")
-                .font(.headline)
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Peek-A-Do").font(.headline)
+                if let name = settings.primaryProfile?.name,
+                   settings.profiles.count > 1 {
+                    Text(name).font(.caption2).foregroundStyle(.secondary)
+                }
+            }
             Spacer()
-            Button {
-                showingSettings.toggle()
-            } label: {
-                Image(systemName: showingSettings ? "xmark" : "gearshape")
+            Button(action: onOpenSettings) {
+                Image(systemName: "gearshape")
             }
             .buttonStyle(.borderless)
-            .help(showingSettings ? "Back to tasks" : "Notion settings")
+            .help("Settings")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -259,32 +212,32 @@ struct TaskListView: View {
 
     @ViewBuilder
     private var content: some View {
-        if showingSettings {
-            settingsPanel
-        } else {
-            switch model.phase {
-            case .idle, .loading:
-                centered {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text("Loading…").foregroundStyle(.secondary)
-                    }
+        switch model.phase {
+        case .idle, .loading:
+            centered {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Loading…").foregroundStyle(.secondary)
                 }
-            case let .loaded(tasks) where tasks.isEmpty:
-                centered {
-                    Text("Nothing on deck 🎉").foregroundStyle(.secondary)
-                }
-            case let .loaded(tasks):
-                taskList(tasks)
-            case let .failed(message):
-                centered {
-                    VStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundStyle(.orange)
-                        Text(message)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+            }
+        case let .loaded(tasks) where tasks.isEmpty:
+            centered {
+                Text("Nothing on deck 🎉").foregroundStyle(.secondary)
+            }
+        case let .loaded(tasks):
+            taskList(tasks)
+        case let .failed(message):
+            centered {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                    Text(message)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    if !AppSettings.shared.isConfigured {
+                        Button("Open Settings", action: onOpenSettings)
+                            .controlSize(.small)
                     }
                 }
             }
@@ -316,102 +269,6 @@ struct TaskListView: View {
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
         .frame(maxHeight: 320)
-    }
-
-    // MARK: Settings
-
-    private var settingsPanel: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-
-                // ── Database ──────────────────────────────────
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Notion database").font(.callout).bold()
-                    settingField("Database ID", text: $settings.databaseID,
-                                 prompt: "32-hex id from the database URL")
-                    HStack(spacing: 6) {
-                        settingField("Title property", text: $settings.titleProperty, prompt: "Name")
-                        settingField("Date property", text: $settings.dateProperty, prompt: "Due")
-                    }
-                    settingField("Status property", text: $settings.statusProperty, prompt: "Status")
-                    Text("Status is read as a \(Config.statusPropertyKind.rawValue) field; "
-                         + "\"done\" means \"\(Config.doneStatusValue)\". Change those in Config.swift.")
-                        .font(.caption2).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Divider()
-
-                // ── Token ─────────────────────────────────────
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Integration token").font(.callout).bold()
-                    Text("From notion.so/my-integrations — share the database with it. Stored in your Keychain.")
-                        .font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    SecureField(model.hasToken ? "•••••• saved — paste to replace" : "secret_… / ntn_…",
-                                text: $tokenField)
-                        .textFieldStyle(.roundedBorder)
-                    HStack {
-                        Text(model.hasToken ? "✓ token saved" : "no token yet")
-                            .font(.caption2)
-                            .foregroundStyle(model.hasToken ? Color.green : Color.secondary)
-                        Spacer()
-                        if model.hasToken {
-                            Button("Remove token") { model.removeToken() }
-                                .controlSize(.small)
-                        }
-                    }
-                }
-
-                Divider()
-
-                // ── Launch at login ───────────────────────────
-                VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Start at login", isOn: Binding(
-                        get: { model.launchAtLogin },
-                        set: { model.setLaunchAtLogin($0) }
-                    ))
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-
-                    if model.launchNeedsApproval {
-                        Text("Approve Peek-A-Do in System Settings › General › Login Items.")
-                            .font(.caption2).foregroundStyle(.orange)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                Divider()
-
-                HStack {
-                    Text("Toggle anywhere: double-tap Control")
-                        .font(.caption2).foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Save") {
-                        settings.save()
-                        let pasted = tokenField.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !pasted.isEmpty {
-                            model.saveToken(pasted)
-                            tokenField = ""
-                        }
-                        model.refresh()
-                        showingSettings = false
-                    }
-                    .keyboardShortcut(.defaultAction)
-                }
-            }
-            .padding(12)
-        }
-        .frame(maxHeight: 380)
-    }
-
-    private func settingField(_ label: String, text: Binding<String>, prompt: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
-            TextField(prompt, text: text)
-                .textFieldStyle(.roundedBorder)
-                .font(.callout)
-        }
     }
 
     // MARK: Footer
