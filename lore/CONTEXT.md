@@ -1,6 +1,6 @@
 # Context
 
-**Focus:** v1 done and in daily use. No active build work — parked until it stops working well.
+**Focus:** v1 in daily use. Small polish as JB asks for it.
 **Phase:** Alpha (personal daily driver)
 **Open:** PKD-1 (distributable for non-devs) — backlog. No tests. No CHANGELOG git hook. `OG.md` + `MISSION.md` unwritten.
 **Next:** Nothing scheduled. Revisit when v1 breaks or distribution becomes a goal.
@@ -34,3 +34,11 @@ Loaded: none.
 Left open: PKD-1 (backlog), tests, CHANGELOG hook.
 Carry forward: v1 is a personal daily driver + clone-and-build repo; not a
 download-and-run app yet. Don't reopen unless it breaks or distribution is on.
+
+### 2026-09-04 (later still) — JB / claude-code
+Footer now shows "X of Y done". To make that meaningful, `fetchTodaysTasks`
+stopped filtering out Done — completed tasks now render checked, sorted to the
+bottom (`TaskListModel.ordered`), and no longer vanish on check. Un-check has a
+`newTaskStatusValue` fallback. Decision: `decisions/show-done-tasks.md`.
+Loaded: `architecture/apis.md`, `architecture/overview.md`, `features/task-list.md`.
+Left open: unchanged (PKD-1, tests, CHANGELOG hook).

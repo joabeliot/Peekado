@@ -18,6 +18,12 @@ final class TaskListModel: ObservableObject {
     @Published var hasToken: Bool = KeychainStore.readToken() != nil
     @Published private(set) var isAdding = false
 
+    /// Footer summary, e.g. "1 of 3 done". `nil` when there's nothing to count.
+    var summary: String? {
+        guard case let .loaded(tasks) = phase, !tasks.isEmpty else { return nil }
+        return "\(tasks.filter(\.done).count) of \(tasks.count) done"
+    }
+
     /// `true` once macOS will launch Peek-A-Do at login.
     @Published private(set) var launchAtLogin = false
     /// `true` when the login item is registered but the user still has to
@@ -67,11 +73,7 @@ final class TaskListModel: ObservableObject {
             do {
                 let client = try NotionClient()
                 let tasks = try await client.fetchTodaysTasks()
-                phase = .loaded(
-                    tasks.sorted {
-                        ($0.dueTime ?? .distantFuture) < ($1.dueTime ?? .distantFuture)
-                    }
-                )
+                phase = .loaded(Self.ordered(tasks))
             } catch {
                 phase = .failed(error.localizedDescription)
             }
@@ -129,13 +131,18 @@ final class TaskListModel: ObservableObject {
         phase = .loaded(tasks)
 
         let snapshot = tasks[index]
+        // If the task was already Done when we fetched it, un-checking has no
+        // sensible "previous" value — fall back to the new-task status.
+        let restore = (snapshot.originalStatus.isEmpty || snapshot.originalStatus == Config.doneStatusValue)
+            ? Config.newTaskStatusValue
+            : snapshot.originalStatus
         Task {
             do {
                 let client = try NotionClient()
                 try await client.setDone(
                     pageID: snapshot.id,
                     done: newDone,
-                    restoreStatus: snapshot.originalStatus
+                    restoreStatus: restore
                 )
             } catch {
                 if case var .loaded(current) = phase,
@@ -145,6 +152,14 @@ final class TaskListModel: ObservableObject {
                 }
                 NSSound.beep()
             }
+        }
+    }
+
+    /// Open tasks first (by time), completed tasks last (by time).
+    static func ordered(_ tasks: [TodoTask]) -> [TodoTask] {
+        tasks.sorted { a, b in
+            if a.done != b.done { return !a.done }
+            return (a.dueTime ?? .distantFuture) < (b.dueTime ?? .distantFuture)
         }
     }
 
@@ -364,6 +379,13 @@ struct TaskListView: View {
             .buttonStyle(.borderless)
 
             Spacer()
+
+            if let summary = model.summary {
+                Text(summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
 
             Button {
                 NSApplication.shared.terminate(nil)

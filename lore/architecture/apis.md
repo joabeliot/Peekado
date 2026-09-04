@@ -13,15 +13,13 @@
 Body:
 ```json
 {
-  "filter": { "and": [
-    { "property": "<dateProperty>",   "date":   { "equals": "<yyyy-MM-dd>" } },
-    { "property": "<statusProperty>", "<status|select>": { "does_not_equal": "<doneStatusValue>" } }
-  ]},
+  "filter": { "property": "<dateProperty>", "date": { "equals": "<yyyy-MM-dd>" } },
   "page_size": 100
 }
 ```
-`does_not_equal` also matches rows where the property is empty. No pagination
-handling — 100-task ceiling per day is fine.
+Filters on date only — Done tasks are fetched too, so the footer can show
+"X of Y done". No pagination handling — 100-task ceiling per day is fine.
+See `decisions/show-done-tasks.md`.
 
 ### `setDone(pageID:done:restoreStatus:)` → `PATCH /pages/{pageID}`
 ```json

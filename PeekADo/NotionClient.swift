@@ -120,20 +120,13 @@ struct NotionClient {
 
     private func queryBody() -> [String: Any] {
         let today = Self.isoDay.string(from: Date())
-        let kindKey = Config.statusPropertyKind.rawValue
 
+        // Everything due today, Done included — the dropdown needs the finished
+        // ones to show "X of Y done". Completion is read from the status property.
         return [
             "filter": [
-                "and": [
-                    [
-                        "property": Config.dateProperty,
-                        "date": ["equals": today],
-                    ],
-                    [
-                        "property": Config.statusProperty,
-                        kindKey: ["does_not_equal": Config.doneStatusValue],
-                    ],
-                ]
+                "property": Config.dateProperty,
+                "date": ["equals": today],
             ],
             "page_size": 100,
         ]

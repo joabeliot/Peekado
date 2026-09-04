@@ -19,9 +19,10 @@ TodoTask struct — the one model type
 ## Flow
 
 - **Open dropdown → `TaskListView.onAppear` → `model.refresh()`**
-  `NotionClient.fetchTodaysTasks()` → `POST /v1/databases/{id}/query` with a
-  filter (`Due == today` AND `Status != Done`) → parse `results` → `phase = .loaded([...])`.
-  Spinner only shows when there's nothing already on screen.
+  `NotionClient.fetchTodaysTasks()` → `POST /v1/databases/{id}/query` filtered on
+  `Due == today` only (Done included) → parse `results` → `TaskListModel.ordered`
+  (open first by time, done last) → `phase = .loaded([...])`. Spinner only shows
+  when there's nothing already on screen. Footer shows `model.summary` ("X of Y done").
 - **Toggle a row → `model.toggle` flips `done` locally → `.loaded` re-emitted →
   `NotionClient.setDone()` → `PATCH /v1/pages/{id}`.** On error: revert + beep.
   Rows with a `temp-` id (not yet saved) ignore toggles.
@@ -47,3 +48,5 @@ helper) as the login item.
 
 Background polling, notifications, caching/persistence, multi-day views,
 settings for the database id / property names (code constants for now).
+Reordering the list on toggle (only on refresh — checking a box strikes it
+through in place).
