@@ -68,14 +68,13 @@ final class AppSettings: ObservableObject {
         if primaryID == nil { primaryID = new.id }
     }
 
-    /// Add a profile from just a database id, then detect its schema.
-    /// Returns `nil` on success, or a message to show.
-    @discardableResult
-    func addProfile(databaseID: String) async -> String? {
+    /// Add a profile seeded with just a database id. Detect its schema separately
+    /// (`detectSchema(for:)`) so the caller can route the outcome to that row.
+    func addProfile(databaseID: String) -> UUID {
         let new = DatabaseProfile(name: "New database", databaseID: databaseID.trimmed)
         profiles.append(new)
         if primaryID == nil { primaryID = new.id }
-        return await detectSchema(for: new.id)
+        return new.id
     }
 
     func deleteProfile(_ id: UUID) {

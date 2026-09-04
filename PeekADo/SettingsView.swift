@@ -7,9 +7,6 @@ struct SettingsView: View {
     @State private var tokenField = ""
 
     @State private var newDBID = ""
-    @State private var addBusy = false
-    @State private var addError: String?
-
     @State private var busyRows: Set<UUID> = []
     @State private var rowErrors: [UUID: String] = [:]
     @State private var expandedRows: Set<UUID> = []
@@ -48,16 +45,12 @@ struct SettingsView: View {
             HStack(spacing: 6) {
                 TextField("Paste a new database ID…", text: $newDBID)
                     .textFieldStyle(.roundedBorder)
-                Button("Add & set up") { addNew() }
-                    .disabled(addBusy || newDBID.trimmingCharacters(in: .whitespaces).isEmpty || !settings.hasToken)
-                if addBusy { ProgressView().controlSize(.small) }
-            }
-            if let addError {
-                Text(addError).font(.caption).foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .onSubmit(addNew)
+                Button("Add & set up", action: addNew)
+                    .disabled(newDBID.trimmingCharacters(in: .whitespaces).isEmpty || !settings.hasToken)
             }
             if !settings.hasToken {
-                Text("Save your integration token below first.")
+                Text("Save your integration token in the Notion tab first.")
                     .font(.caption2).foregroundStyle(.orange)
             }
 
@@ -104,12 +97,21 @@ struct SettingsView: View {
             }
 
             HStack(spacing: 6) {
-                Text(p.isUsable
-                     ? "\(p.titleProperty) · \(p.dateProperty) · \(p.statusProperty) (\(p.statusKind)), done → \(p.doneValue)"
-                     : "no database ID")
-                    .font(.caption2).foregroundStyle(.secondary)
-                    .lineLimit(1)
+                Group {
+                    if let err = rowErrors[id] {
+                        Text(err).foregroundStyle(.red)
+                    } else if !p.isUsable {
+                        Text("not set up — paste an ID in Edit").foregroundStyle(.orange)
+                    } else {
+                        Text("\(p.titleProperty) · \(p.dateProperty) · \(p.statusProperty) (\(p.statusKind)), done → \(p.doneValue)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .font(.caption2)
+                .fixedSize(horizontal: false, vertical: true)
+
                 Spacer()
+
                 Button("Re-detect") { detect(id) }
                     .controlSize(.mini)
                     .disabled(busyRows.contains(id) || !p.isUsable || !settings.hasToken)
@@ -119,12 +121,6 @@ struct SettingsView: View {
                 .controlSize(.mini)
             }
             .padding(.leading, 24)
-
-            if let err = rowErrors[id] {
-                Text(err).font(.caption2).foregroundStyle(.red)
-                    .padding(.leading, 24)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
 
             if expandedRows.contains(id) {
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 8, verticalSpacing: 5) {
@@ -177,16 +173,11 @@ struct SettingsView: View {
     // MARK: - Actions
 
     private func addNew() {
-        let id = newDBID
-        addBusy = true; addError = nil
-        Task {
-            let err = await settings.addProfile(databaseID: id)
-            addBusy = false
-            newDBID = ""
-            // On failure the row is still added with the pasted id — the error
-            // shows on that row, and the user can fix it inline + Re-detect.
-            if let err { addError = err }
-        }
+        let raw = newDBID.trimmingCharacters(in: .whitespaces)
+        guard !raw.isEmpty, settings.hasToken else { return }
+        newDBID = ""
+        let id = settings.addProfile(databaseID: raw)
+        detect(id)
     }
 
     private func detect(_ id: UUID) {
@@ -194,7 +185,10 @@ struct SettingsView: View {
         Task {
             let err = await settings.detectSchema(for: id)
             busyRows.remove(id)
-            if let err { rowErrors[id] = err }
+            if let err {
+                rowErrors[id] = err
+                expandedRows.insert(id)   // open the fields so it can be fixed
+            }
         }
     }
 
