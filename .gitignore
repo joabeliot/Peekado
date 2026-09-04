@@ -1,0 +1,17 @@
+.DS_Store
+
+## Xcode
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+build/
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Secrets — the Notion token lives in Keychain, never in the repo
+*.secret
+secrets.xcconfig

@@ -1,0 +1,6 @@
+project: peekado
+session: 1a991d31-3398-431b-bafd-d8a09ad40047
+description: macOS menu bar app that shows and adds today's Notion tasks from a dropdown
+working_dir: .
+lore_dir: ./lore
+ticket: ./lore/workspace/ticket.json

@@ -1,0 +1,5 @@
+skills:
+  - name: lore
+    version: 0.1.0
+    source: https://github.com/joabeliot/lore
+    notes: using as-is — project AI readiness layer
