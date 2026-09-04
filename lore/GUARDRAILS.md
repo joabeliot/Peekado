@@ -31,8 +31,8 @@
 - Deployment target: macOS 13.0. Swift language version 5.
 - Menu bar is `NSStatusItem` + `NSPopover` in `AppDelegate` — **not**
   `MenuBarExtra` (it can't be toggled from code). Don't reintroduce it.
-- The toggle hotkey is two constants at the top of `AppDelegate`
-  (`hotKeyCode`, `hotKeyModifiers`). `GlobalHotKey` is Carbon, no permission.
+- The toggle is double-tap Control (`DoubleTapMonitor`), rebind via
+  `toggleModifier` in `AppDelegate`. Needs Accessibility permission.
 - One type per concern. Resist splitting further.
 - Xcode project is hand-written (`objectVersion 77`, file-system synchronized
   group). Adding a file to `PeekADo/` is enough — no pbxproj edit needed.

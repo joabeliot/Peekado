@@ -62,3 +62,12 @@ app's UserDefaults via `defaults write`. Build green, installed.
 Loaded: `architecture/{overview,apis}.md`, `GUARDRAILS.md`, `ideas/distributable-app.md`,
 `decisions/token-in-keychain.md`.
 Left open: JB confirms hotkey+popover feel right; PKD-1.
+
+### 2026-09-04 (cont.) — JB / claude-code
+The ⌃⌥⌘Space chord did nothing for JB — almost certainly already registered by
+another app (`RegisterEventHotKey` fails silently). Swapped it for
+**double-tap Control** (`DoubleTapMonitor` — global `.flagsChanged` monitor,
+`decisions/double-tap-toggle.md`). `GlobalHotKey.swift` deleted. Trade-off: needs
+Accessibility permission; `AppDelegate` prompts on launch, menu bar click is the
+fallback. Built + installed. JB needs to grant Accessibility, then test.
+Loaded: `architecture/{overview,apis}.md`, `GUARDRAILS.md`, `features/global-hotkey.md`.

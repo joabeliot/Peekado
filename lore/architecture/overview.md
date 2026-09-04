@@ -9,8 +9,8 @@ PeekADoApp (@main, App)           scene is an empty Settings{} — never shows
   └─ @NSApplicationDelegateAdaptor AppDelegate
        ├─ NSStatusItem            the "checklist" menu bar button
        ├─ NSPopover (.transient)  hosts TaskListView via NSHostingController
-       └─ GlobalHotKey            Carbon RegisterEventHotKey → togglePopover()
-                                  default ⌃⌥⌘Space (constants in AppDelegate)
+       └─ DoubleTapMonitor        global NSEvent .flagsChanged monitor →
+                                  togglePopover() on double-tap Control
 
 TaskListView (SwiftUI)
   ├─ TaskListModel   @MainActor ObservableObject — all task state + orchestration
@@ -25,9 +25,9 @@ Config    enum — reads the Settings-backed values out of UserDefaults
 TodoTask  struct — the one model type
 ```
 
-`MenuBarExtra` was dropped in favour of `NSStatusItem` + `NSPopover` because
-`MenuBarExtra` has no API to open/close its panel — the toggle hotkey needs that.
-See `decisions/nsstatusitem-over-menubarextra.md`.
+`MenuBarExtra` was dropped for `NSStatusItem` + `NSPopover` because it has no
+API to open/close its panel — the toggle gesture needs that. See
+`decisions/nsstatusitem-over-menubarextra.md` and `decisions/double-tap-toggle.md`.
 
 ## Flow
 
@@ -43,7 +43,7 @@ See `decisions/nsstatusitem-over-menubarextra.md`.
   `NotionClient.createTask()` → `POST /v1/pages` (Due = today, Status =
   `Config.newTaskStatusValue`) → `refresh()` swaps in server truth.** On error:
   drop the temp row + beep.
-- **Toggle (hotkey or click the menu bar icon) → `AppDelegate.togglePopover`.**
+- **Toggle (double-tap Control, or click the menu bar icon) → `AppDelegate.togglePopover`.**
   Shown → `performClose`. Hidden → `NSApp.activate` + `popover.show(relativeTo:)`
   + make the popover window key so its text fields take input.
 - **Settings panel** (gear): edit `databaseID` + property names (→ `AppSettings.save`
@@ -59,11 +59,11 @@ See `decisions/nsstatusitem-over-menubarextra.md`.
 
 No sandbox. Hardened runtime on. Signed with a personal-team Apple Development
 cert. Runs from `/Applications`; `SMAppService` registers the main app (not a
-helper) as the login item. Carbon hotkeys need no entitlement.
+helper) as the login item. The double-tap gesture needs Accessibility
+permission (prompted on launch); no entitlement.
 
 ## Deliberately absent
 
-Background polling, notifications, caching/persistence, multi-day views,
-settings for the database id / property names (code constants for now).
+Background polling, notifications, caching/persistence, multi-day views.
 Reordering the list on toggle (only on refresh — checking a box strikes it
-through in place).
+through in place). In-app rebind of the toggle modifier.

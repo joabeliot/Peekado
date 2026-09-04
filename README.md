@@ -10,7 +10,7 @@ No Dock icon, no window — just a checklist glyph in the menu bar.
 
 ## What it does
 
-- Checklist icon in the menu bar → click, **or press ⌃⌥⌘Space anywhere** →
+- Checklist icon in the menu bar → click, **or press double-tap Control anywhere** →
   opens/closes an inline task list popover.
 - Fetches all tasks from a Notion database due **today** (Done included). Open
   tasks first, completed struck through and sorted last. Footer shows "X of Y done".

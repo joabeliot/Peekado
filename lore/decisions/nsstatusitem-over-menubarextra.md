@@ -22,7 +22,7 @@ change whether the icon exists. `NSPopover` has `show(relativeTo:)` /
   more state to keep in sync.
 
 ## Consequences
-- `AppDelegate` now owns lifecycle: status item, popover, `GlobalHotKey`.
+- `AppDelegate` now owns lifecycle: status item, popover, `DoubleTapMonitor`.
 - Visual: a popover with an arrow to the menu bar, vs the old detached rounded
   panel. Close enough; standard for this class of app.
 - Popover must be made key on show (`view.window?.makeKey()`) or text fields

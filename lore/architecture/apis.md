@@ -59,5 +59,6 @@ Status key omitted when `newTaskStatusValue == ""`.
 - **ServiceManagement**: `SMAppService.mainApp` for the login item. `.status`
   can be `.enabled`, `.requiresApproval` (needs System Settings › Login Items),
   `.notRegistered`.
-- **Carbon.HIToolbox**: `RegisterEventHotKey` / `InstallEventHandler` for the
-  global toggle hotkey. No entitlement, no Accessibility permission.
+- **Global NSEvent monitor** (`DoubleTapMonitor`): `.flagsChanged` for the
+  double-tap-Control toggle. Needs Accessibility permission (`AXIsProcessTrusted`
+  prompt in `AppDelegate`); no entitlement.
