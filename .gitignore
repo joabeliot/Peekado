@@ -15,3 +15,6 @@ DerivedData/
 ## Secrets — the Notion token lives in Keychain, never in the repo
 *.secret
 secrets.xcconfig
+
+## lore — raw per-turn session transcripts (roll-up buffer, not for sharing)
+lore/sessions/

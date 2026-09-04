@@ -1,5 +1,34 @@
 {
   "shorthand": "PKD",
-  "tickets": [],
-  "counter": 1
+  "tickets": [
+    {
+      "id": "PKD-1",
+      "name": "Make Peek-A-Do installable by non-developers",
+      "description": "",
+      "context": [
+        "lore/ideas/distributable-app.md"
+      ],
+      "plan": null,
+      "status": "backlog",
+      "priority": "P2",
+      "tags": [
+        "distribution",
+        "packaging",
+        "future"
+      ],
+      "source": "Agent",
+      "created": "2026-09-04",
+      "assigned_to": null,
+      "started_at": null,
+      "completed_at": null,
+      "logs": [
+        {
+          "at": "2026-09-04T10:48:13.313023+00:00",
+          "event": "created",
+          "detail": "PKD-1"
+        }
+      ]
+    }
+  ],
+  "counter": 2
 }
