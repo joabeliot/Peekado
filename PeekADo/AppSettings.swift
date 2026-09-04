@@ -68,6 +68,16 @@ final class AppSettings: ObservableObject {
         if primaryID == nil { primaryID = new.id }
     }
 
+    /// Add a profile from just a database id, then detect its schema.
+    /// Returns `nil` on success, or a message to show.
+    @discardableResult
+    func addProfile(databaseID: String) async -> String? {
+        let new = DatabaseProfile(name: "New database", databaseID: databaseID.trimmed)
+        profiles.append(new)
+        if primaryID == nil { primaryID = new.id }
+        return await detectSchema(for: new.id)
+    }
+
     func deleteProfile(_ id: UUID) {
         profiles.removeAll { $0.id == id }
         if primaryID == id { primaryID = profiles.first?.id }
@@ -91,6 +101,32 @@ final class AppSettings: ObservableObject {
         defaults.set(p?.titleProperty.trimmed ?? "",  forKey: Config.Key.titleProperty)
         defaults.set(p?.dateProperty.trimmed ?? "",   forKey: Config.Key.dateProperty)
         defaults.set(p?.statusProperty.trimmed ?? "", forKey: Config.Key.statusProperty)
+        defaults.set(p?.statusKind ?? "select",       forKey: Config.Key.statusKind)
+        defaults.set(p?.doneValue.trimmed ?? "Done",  forKey: Config.Key.doneValue)
+        defaults.set(p?.newTaskValue.trimmed ?? "",   forKey: Config.Key.newTaskValue)
+    }
+
+    /// Ask Notion for the database's schema and fill in the profile's property
+    /// names / status config. Returns `nil` on success, or a message to show.
+    func detectSchema(for profileID: UUID) async -> String? {
+        guard let index = profiles.firstIndex(where: { $0.id == profileID }) else {
+            return "That database row is gone."
+        }
+        do {
+            let schema = try await NotionClient.fetchDatabaseSchema(id: profiles[index].databaseID)
+            var p = profiles[index]
+            if !schema.name.isEmpty { p.name = schema.name }
+            p.titleProperty = schema.titleProperty
+            p.dateProperty = schema.dateProperty
+            p.statusProperty = schema.statusProperty
+            p.statusKind = schema.statusKind.rawValue
+            p.doneValue = schema.doneValue
+            p.newTaskValue = schema.newTaskValue
+            profiles[index] = p   // triggers persist()
+            return nil
+        } catch {
+            return (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
     }
 
     var isConfigured: Bool { primaryProfile?.isUsable == true }

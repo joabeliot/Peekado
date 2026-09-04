@@ -6,6 +6,14 @@ struct SettingsView: View {
     @ObservedObject private var settings = AppSettings.shared
     @State private var tokenField = ""
 
+    @State private var newDBID = ""
+    @State private var addBusy = false
+    @State private var addError: String?
+
+    @State private var busyRows: Set<UUID> = []
+    @State private var rowErrors: [UUID: String] = [:]
+    @State private var expandedRows: Set<UUID> = []
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -17,7 +25,7 @@ struct SettingsView: View {
             }
             .padding(20)
         }
-        .frame(width: 460, height: 480)
+        .frame(width: 460, height: 520)
         .onAppear { settings.refreshLaunchState() }
     }
 
@@ -25,19 +33,27 @@ struct SettingsView: View {
 
     private var databases: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Databases").font(.headline)
-                Spacer()
-                Button {
-                    settings.addProfile()
-                } label: {
-                    Label("Add", systemImage: "plus")
-                }
-                .controlSize(.small)
-            }
-
-            Text("The selected one opens when you open Peek-A-Do.")
+            Text("Databases").font(.headline)
+            Text("Paste a database ID — Peek-A-Do reads the rest from Notion. "
+                 + "The selected radio button is the one that opens.")
                 .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 6) {
+                TextField("Paste a new database ID…", text: $newDBID)
+                    .textFieldStyle(.roundedBorder)
+                Button("Add & set up") { addNew() }
+                    .disabled(addBusy || newDBID.trimmingCharacters(in: .whitespaces).isEmpty || !settings.hasToken)
+                if addBusy { ProgressView().controlSize(.small) }
+            }
+            if let addError {
+                Text(addError).font(.caption).foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !settings.hasToken {
+                Text("Save your integration token below first.")
+                    .font(.caption2).foregroundStyle(.orange)
+            }
 
             ForEach($settings.profiles) { $profile in
                 profileRow($profile)
@@ -48,6 +64,7 @@ struct SettingsView: View {
     private func profileRow(_ profile: Binding<DatabaseProfile>) -> some View {
         let id = profile.wrappedValue.id
         let isPrimary = settings.primaryID == id
+        let p = profile.wrappedValue
 
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
@@ -65,10 +82,13 @@ struct SettingsView: View {
                     .textFieldStyle(.plain)
                     .font(.body.weight(.medium))
 
+                if busyRows.contains(id) { ProgressView().controlSize(.small) }
+
                 Spacer()
 
                 Button {
                     settings.deleteProfile(id)
+                    rowErrors[id] = nil; expandedRows.remove(id)
                 } label: {
                     Image(systemName: "trash").foregroundStyle(.secondary)
                 }
@@ -77,21 +97,59 @@ struct SettingsView: View {
                 .help("Remove")
             }
 
-            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 8, verticalSpacing: 5) {
-                gridField("Database ID", profile.databaseID, prompt: "32-hex id from the URL")
-                GridRow {
-                    Text("Properties").gridColumnAlignment(.trailing)
-                        .font(.caption).foregroundStyle(.secondary)
-                    HStack(spacing: 6) {
-                        TextField("Name", text: profile.titleProperty).frame(width: 90)
-                        TextField("Due", text: profile.dateProperty).frame(width: 90)
-                        TextField("Status", text: profile.statusProperty).frame(width: 90)
-                    }
-                    .textFieldStyle(.roundedBorder)
-                    .font(.callout)
+            HStack(spacing: 6) {
+                Text(p.isUsable
+                     ? "\(p.titleProperty) · \(p.dateProperty) · \(p.statusProperty) (\(p.statusKind)), done → \(p.doneValue)"
+                     : "no database ID")
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer()
+                Button("Re-detect") { detect(id) }
+                    .controlSize(.mini)
+                    .disabled(busyRows.contains(id) || !p.isUsable || !settings.hasToken)
+                Button(expandedRows.contains(id) ? "Hide" : "Edit") {
+                    if expandedRows.contains(id) { expandedRows.remove(id) } else { expandedRows.insert(id) }
                 }
+                .controlSize(.mini)
             }
             .padding(.leading, 24)
+
+            if let err = rowErrors[id] {
+                Text(err).font(.caption2).foregroundStyle(.red)
+                    .padding(.leading, 24)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if expandedRows.contains(id) {
+                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 8, verticalSpacing: 5) {
+                    gridField("Database ID", profile.databaseID, prompt: "32-hex id from the URL")
+                    GridRow {
+                        Text("Properties").gridColumnAlignment(.trailing)
+                            .font(.caption).foregroundStyle(.secondary)
+                        HStack(spacing: 6) {
+                            TextField("Name", text: profile.titleProperty).frame(width: 84)
+                            TextField("Due", text: profile.dateProperty).frame(width: 84)
+                            TextField("Status", text: profile.statusProperty).frame(width: 84)
+                        }
+                        .textFieldStyle(.roundedBorder).font(.callout)
+                    }
+                    GridRow {
+                        Text("Status").gridColumnAlignment(.trailing)
+                            .font(.caption).foregroundStyle(.secondary)
+                        HStack(spacing: 6) {
+                            Picker("", selection: profile.statusKind) {
+                                Text("Select").tag("select")
+                                Text("Status").tag("status")
+                            }
+                            .labelsHidden().frame(width: 90)
+                            TextField("done", text: profile.doneValue).frame(width: 84)
+                            TextField("to do", text: profile.newTaskValue).frame(width: 84)
+                        }
+                        .textFieldStyle(.roundedBorder).font(.callout)
+                    }
+                }
+                .padding(.leading, 24)
+            }
         }
         .padding(10)
         .background(
@@ -107,6 +165,30 @@ struct SettingsView: View {
             TextField(prompt, text: text)
                 .textFieldStyle(.roundedBorder)
                 .font(.callout)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func addNew() {
+        let id = newDBID
+        addBusy = true; addError = nil
+        Task {
+            let err = await settings.addProfile(databaseID: id)
+            addBusy = false
+            newDBID = ""
+            // On failure the row is still added with the pasted id — the error
+            // shows on that row, and the user can fix it inline + Re-detect.
+            if let err { addError = err }
+        }
+    }
+
+    private func detect(_ id: UUID) {
+        busyRows.insert(id); rowErrors[id] = nil
+        Task {
+            let err = await settings.detectSchema(for: id)
+            busyRows.remove(id)
+            if let err { rowErrors[id] = err }
         }
     }
 

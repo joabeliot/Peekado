@@ -16,26 +16,32 @@ enum Config {
         static let titleProperty  = "notion.titleProperty"
         static let dateProperty   = "notion.dateProperty"
         static let statusProperty = "notion.statusProperty"
+        static let statusKind     = "notion.statusKind"
+        static let doneValue      = "notion.doneValue"
+        static let newTaskValue   = "notion.newTaskValue"
     }
 
-    // MARK: - Settings-backed (read from UserDefaults, fall back to a default)
+    // MARK: - Settings-backed (mirrored from the primary DatabaseProfile)
 
     static var databaseID: String     { value(Key.databaseID,     or: "") }
     static var titleProperty: String  { value(Key.titleProperty,  or: "Name") }
     static var dateProperty: String   { value(Key.dateProperty,   or: "Due") }
     static var statusProperty: String { value(Key.statusProperty, or: "Status") }
 
-    // MARK: - Fixed constants (edit here if your DB differs)
-
     /// Is `statusProperty` a Notion **Status** field or a **Select** field?
-    /// Notion's API can only *create* Select, so adding tasks needs `.select`.
-    static let statusPropertyKind: StatusKind = .select
+    static var statusPropertyKind: StatusKind {
+        StatusKind(rawValue: value(Key.statusKind, or: "select")) ?? .select
+    }
 
     /// The `statusProperty` value that means "finished".
-    static let doneStatusValue = "Done"
+    static var doneStatusValue: String { value(Key.doneValue, or: "Done") }
 
     /// Status applied to a task created from the dropdown. `""` ⇒ no status set.
-    static let newTaskStatusValue = "To do"
+    static var newTaskStatusValue: String {
+        UserDefaults.standard.string(forKey: Key.newTaskValue) ?? "To do"
+    }
+
+    // MARK: - Fixed constant
 
     /// Notion's dated API version.
     static let notionAPIVersion = "2022-06-28"

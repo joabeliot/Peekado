@@ -8,6 +8,7 @@ struct NotionClient {
         case missingToken
         case missingDatabaseID
         case http(status: Int, body: String)
+        case schema(String)
         case badResponse
 
         var errorDescription: String? {
@@ -18,6 +19,8 @@ struct NotionClient {
                 return "No database ID yet — add it in Settings (the gear icon)."
             case let .http(status, body):
                 return "Notion returned \(status).\n\(body)"
+            case let .schema(message):
+                return message
             case .badResponse:
                 return "Couldn't make sense of Notion's response."
             }
@@ -37,6 +40,92 @@ struct NotionClient {
         }
         self.token = token
         self.session = session
+    }
+
+    // MARK: - Schema discovery
+
+    /// What a paste-the-id setup fills in.
+    struct DatabaseSchema {
+        var name: String
+        var titleProperty: String
+        var dateProperty: String
+        var statusProperty: String
+        var statusKind: Config.StatusKind
+        var doneValue: String
+        var newTaskValue: String
+    }
+
+    /// `GET /v1/databases/{id}` → guess which property is title / date / status,
+    /// the status field's kind, and its "done" / "to do" option names.
+    /// Independent of the instance (only needs the token).
+    static func fetchDatabaseSchema(id rawID: String) async throws -> DatabaseSchema {
+        guard let token = KeychainStore.readToken() else { throw ClientError.missingToken }
+        let id = rawID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !id.isEmpty else { throw ClientError.missingDatabaseID }
+
+        var request = URLRequest(url: URL(string: "https://api.notion.com/v1/databases/\(id)")!)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(Config.notionAPIVersion, forHTTPHeaderField: "Notion-Version")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try check(response, data)
+
+        guard
+            let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let props = root["properties"] as? [String: Any]
+        else { throw ClientError.badResponse }
+
+        func names(ofType type: String) -> [String] {
+            props.compactMap { name, value in
+                (value as? [String: Any])?["type"] as? String == type ? name : nil
+            }
+        }
+        func pick(_ candidates: [String], preferring pattern: String) -> String? {
+            candidates.first { $0.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil }
+                ?? candidates.first
+        }
+
+        guard let title = names(ofType: "title").first else {
+            throw ClientError.schema("That database has no title property.")
+        }
+        guard let date = pick(names(ofType: "date"), preferring: "due|date|when|deadline|scheduled") else {
+            throw ClientError.schema("That database has no date property.")
+        }
+
+        let kind: Config.StatusKind
+        let statusName: String
+        if let s = pick(names(ofType: "status"), preferring: "status|state|progress|stage") {
+            kind = .status; statusName = s
+        } else if let s = pick(names(ofType: "select"), preferring: "status|state|progress|stage") {
+            kind = .select; statusName = s
+        } else {
+            throw ClientError.schema("That database has no status or select property.")
+        }
+
+        let options = ((props[statusName] as? [String: Any])?[kind.rawValue] as? [String: Any])?["options"]
+            as? [[String: Any]] ?? []
+        let optionNames = options.compactMap { $0["name"] as? String }
+        let done = optionNames.first {
+            $0.range(of: "^(done|complete|completed|finished|closed|shipped|resolved)$",
+                     options: [.regularExpression, .caseInsensitive]) != nil
+        } ?? "Done"
+        let todo = optionNames.first {
+            $0.range(of: "^(to.?do|todo|not.?started|backlog|new|open|inbox|next|planned)$",
+                     options: [.regularExpression, .caseInsensitive]) != nil
+        } ?? optionNames.first ?? "To do"
+
+        let dbName = (root["title"] as? [[String: Any]])?
+            .compactMap { $0["plain_text"] as? String }.joined() ?? ""
+
+        return DatabaseSchema(
+            name: dbName,
+            titleProperty: title,
+            dateProperty: date,
+            statusProperty: statusName,
+            statusKind: kind,
+            doneValue: done,
+            newTaskValue: todo
+        )
     }
 
     // MARK: - Read
