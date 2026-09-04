@@ -15,18 +15,24 @@ struct SettingsView: View {
     @State private var expandedRows: Set<UUID> = []
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                databases
-                Divider()
-                token
-                Divider()
-                system
-            }
-            .padding(20)
+        TabView {
+            tab { databases }
+                .tabItem { Label("Databases", systemImage: "tablecells") }
+            tab { token }
+                .tabItem { Label("Notion", systemImage: "key.horizontal") }
+            tab { system }
+                .tabItem { Label("General", systemImage: "gearshape") }
         }
-        .frame(width: 460, height: 520)
+        .frame(width: 480, height: 540)
         .onAppear { settings.refreshLaunchState() }
+    }
+
+    private func tab<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView {
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+        }
     }
 
     // MARK: - Databases
