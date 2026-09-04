@@ -212,20 +212,17 @@ struct NotionClient {
         return task
     }
 
-    /// Sets the task's status in Notion.
-    /// `done == true` writes `Config.doneStatusValue`; `done == false` writes
-    /// `restoreStatus` (whatever the task had before you checked it).
-    func setDone(pageID: String, done: Bool, restoreStatus: String) async throws {
+    /// Sets the task's status property to `value` (or clears it if `value` is empty).
+    func setStatus(pageID: String, value: String) async throws {
         let url = URL(string: "https://api.notion.com/v1/pages/\(pageID)")!
         var request = baseRequest(url: url, method: "PATCH")
 
-        let value = done ? Config.doneStatusValue : restoreStatus
         let kindKey = Config.statusPropertyKind.rawValue  // "status" or "select"
+        let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let field: Any = clean.isEmpty ? NSNull() : ["name": clean]
         let body: [String: Any] = [
             "properties": [
-                Config.statusProperty: [
-                    kindKey: ["name": value]
-                ]
+                Config.statusProperty: [kindKey: field]
             ]
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)

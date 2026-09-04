@@ -15,9 +15,9 @@ struct TodoTask: Identifiable, Equatable {
     /// before Notion has confirmed anything.
     var done: Bool
 
-    /// The status value this task had when we fetched it (e.g. "In progress").
-    /// Used to put the task back if you *uncheck* it in the same session.
-    let originalStatus: String
+    /// The task's current status value (e.g. "In progress"). Set from Notion at
+    /// fetch, updated optimistically as you cycle the row.
+    var originalStatus: String
 
     /// Time-of-day from the date property, if it carried one.
     var dueTime: Date?

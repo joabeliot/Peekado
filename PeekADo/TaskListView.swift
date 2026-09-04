@@ -89,35 +89,53 @@ final class TaskListModel: ObservableObject {
         }
     }
 
-    /// Optimistically flips the checkbox, then tells Notion. Rolls back on failure.
-    func toggle(_ task: TodoTask) {
+    /// The click-cycle of status values: to do → in progress → done → (to do).
+    /// Empty / duplicate values are dropped; `done` always closes the loop.
+    static func statusCycle() -> [String] {
+        var cycle: [String] = []
+        func add(_ raw: String) {
+            let v = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !v.isEmpty,
+                  !cycle.contains(where: { $0.caseInsensitiveCompare(v) == .orderedSame })
+            else { return }
+            cycle.append(v)
+        }
+        add(Config.newTaskStatusValue)
+        add(Config.inProgressStatusValue)
+        add(Config.doneStatusValue)
+        return cycle.isEmpty ? [Config.doneStatusValue] : cycle
+    }
+
+    /// Advance a task one step around `statusCycle()`. Optimistic, rolls back.
+    func advance(_ task: TodoTask) {
         guard !task.id.hasPrefix(Self.tempPrefix) else { return }  // not saved yet
         guard case var .loaded(tasks) = phase,
               let index = tasks.firstIndex(where: { $0.id == task.id })
         else { return }
 
-        let newDone = !tasks[index].done
-        tasks[index].done = newDone
+        let cycle = Self.statusCycle()
+        let current = tasks[index].originalStatus
+        let next: String
+        if let i = cycle.firstIndex(where: { $0.caseInsensitiveCompare(current) == .orderedSame }) {
+            next = cycle[(i + 1) % cycle.count]
+        } else {
+            next = Config.doneStatusValue          // unknown status → mark done
+        }
+
+        let before = tasks[index]
+        tasks[index].originalStatus = next
+        tasks[index].done = next.caseInsensitiveCompare(Config.doneStatusValue) == .orderedSame
         phase = .loaded(tasks)
 
-        let snapshot = tasks[index]
-        // If the task was already Done when we fetched it, un-checking has no
-        // sensible "previous" value — fall back to the new-task status.
-        let restore = (snapshot.originalStatus.isEmpty || snapshot.originalStatus == Config.doneStatusValue)
-            ? Config.newTaskStatusValue
-            : snapshot.originalStatus
+        let pageID = before.id
         Task {
             do {
                 let client = try NotionClient()
-                try await client.setDone(
-                    pageID: snapshot.id,
-                    done: newDone,
-                    restoreStatus: restore
-                )
+                try await client.setStatus(pageID: pageID, value: next)
             } catch {
                 if case var .loaded(current) = phase,
-                   let i = current.firstIndex(where: { $0.id == snapshot.id }) {
-                    current[i].done = !newDone
+                   let i = current.firstIndex(where: { $0.id == pageID }) {
+                    current[i] = before
                     phase = .loaded(current)
                 }
                 NSSound.beep()
@@ -248,7 +266,7 @@ struct TaskListView: View {
         List(tasks) { task in
             let inProgress = isInProgress(task)
             Button {
-                model.toggle(task)
+                model.advance(task)
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Image(systemName: task.done ? "checkmark.circle.fill"
@@ -279,6 +297,7 @@ struct TaskListView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .help("Click to advance: to do → in progress → done")
         }
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
