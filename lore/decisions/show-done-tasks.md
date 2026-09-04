@@ -26,7 +26,8 @@ disorienting. Keeping the row visible is calmer.
 ## Consequences
 - Up to 100 tasks/day now includes completed ones — still unpaginated, still fine
   for personal use.
-- `TaskListModel.ordered` groups open-before-done; the list only re-sorts on
-  refresh, so checking a box doesn't make the row jump.
+- `TaskListModel.ordered` tiers to-do → in progress → done then time.
+  (Later change: `advance()` re-sorts on every click so the row moves to its
+  new group — see the 2026-09-04 CONTEXT log.)
 - Un-checking a task that was Done at fetch time has no real prior value →
   `toggle` falls back to `Config.newTaskStatusValue`.
