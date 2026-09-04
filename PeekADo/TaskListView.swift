@@ -384,7 +384,7 @@ struct TaskListView: View {
                 Divider()
 
                 HStack {
-                    Text("Toggle anywhere: ⌃⌥⌘Space")
+                    Text("Toggle anywhere: double-tap Control")
                         .font(.caption2).foregroundStyle(.secondary)
                     Spacer()
                     Button("Save") {

@@ -4,13 +4,12 @@ A macOS menu bar utility that shows today's Notion tasks in a dropdown.
 No Dock icon, no window — just a checklist glyph in the menu bar.
 
 - **Platform:** macOS 13+ (built with Xcode 26, SwiftUI + AppKit)
-- **Dependencies:** none — native `URLSession`, `Security`, `ServiceManagement`,
-  `Carbon` only
+- **Dependencies:** none — native `URLSession`, `Security`, `ServiceManagement` only
 - **Bundle id:** `app.arque.peekado`
 
 ## What it does
 
-- Checklist icon in the menu bar → click, **or press double-tap Control anywhere** →
+- Checklist icon in the menu bar → click it, **or double-tap Control anywhere** →
   opens/closes an inline task list popover.
 - Fetches all tasks from a Notion database due **today** (Done included). Open
   tasks first, completed struck through and sorted last. Footer shows "X of Y done".
@@ -26,8 +25,8 @@ No Dock icon, no window — just a checklist glyph in the menu bar.
 | File | Role |
 | --- | --- |
 | `PeekADo/PeekADoApp.swift` | `@main` — hands off to `AppDelegate` |
-| `PeekADo/AppDelegate.swift` | Menu bar item, popover, global hotkey |
-| `PeekADo/GlobalHotKey.swift` | Carbon `RegisterEventHotKey` wrapper |
+| `PeekADo/AppDelegate.swift` | Menu bar item, popover, toggle gesture |
+| `PeekADo/DoubleTapMonitor.swift` | Global monitor: double-tap a modifier |
 | `PeekADo/AppSettings.swift` | Settings values ↔ `UserDefaults` |
 | `PeekADo/Config.swift` | Reads settings back + fixed constants |
 | `PeekADo/TaskModel.swift` | `TodoTask` value type |
@@ -74,7 +73,8 @@ called `Done`, change `statusPropertyKind` / `doneStatusValue` in `Config.swift`
 
 - `INFOPLIST_KEY_LSUIElement = YES` — menu bar only, no Dock icon
 - `ENABLE_HARDENED_RUNTIME = YES`, App Sandbox **off** (personal utility)
-- Rebind the hotkey: `hotKeyCode` / `hotKeyModifiers` at the top of `AppDelegate.swift`
+- Rebind the toggle: `toggleModifier` at the top of `AppDelegate.swift`
+  (needs Accessibility permission — the app prompts on first launch)
 
 ## Not done yet
 
