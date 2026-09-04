@@ -42,5 +42,6 @@ unrecognised current status jumps straight to done). Optimistic
 - Cap is 100 tasks/day, unpaginated — fine for now.
 
 ## Notes
-Files: `TaskListView.swift` (view + `TaskListModel`), `NotionClient.fetchTodaysTasks`
-/ `setDone`, `TodoTask`.
+Files: `TaskListView.swift` (view + `TaskListModel` — `advance`, `statusCycle`,
+`isInProgress`, `statusBadge`), `NotionClient.fetchTodaysTasks` / `setStatus`,
+`TodoTask`.

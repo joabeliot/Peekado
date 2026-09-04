@@ -45,9 +45,10 @@ open/close its panel). Settings is a hand-built `NSWindow`, not a SwiftUI
   `Due == today` only (Done included) → parse `results` → `TaskListModel.ordered`
   (open first by time, done last) → `phase = .loaded([...])`. Spinner only shows
   when there's nothing already on screen. Footer shows `model.summary` ("X of Y done").
-- **Toggle a row → `model.toggle` flips `done` locally → `.loaded` re-emitted →
-  `NotionClient.setDone()` → `PATCH /v1/pages/{id}`.** On error: revert + beep.
-  Rows with a `temp-` id (not yet saved) ignore toggles.
+- **Click a row → `model.advance` steps its status one step around
+  `statusCycle()` locally → `.loaded` re-emitted → `NotionClient.setStatus()` →
+  `PATCH /v1/pages/{id}`.** On error: revert + beep. Rows with a `temp-` id
+  (not yet saved) ignore clicks.
 - **Add field submit → `model.addTask` inserts an optimistic `temp-` row →
   `NotionClient.createTask()` → `POST /v1/pages` (Due = today, Status =
   `Config.newTaskStatusValue`) → `refresh()` swaps in server truth.** On error:
