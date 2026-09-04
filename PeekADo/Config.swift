@@ -11,12 +11,10 @@ enum Config {
 
     // MARK: - Notion database
 
-    /// The database ID: the 32-character hex blob in your database's URL.
-    ///
-    ///     https://www.notion.so/<workspace>/<THIS_PART>?v=…
-    ///
-    /// Notion accepts it with or without dashes.
-    static let databaseID = "PASTE_YOUR_DATABASE_ID_HERE"
+    /// The database ID — lives in `LocalConfig.swift` so a real id never lands
+    /// in git. Edit it there, then `git update-index --skip-worktree
+    /// PeekADo/LocalConfig.swift`.
+    static let databaseID = LocalConfig.databaseID
 
     // MARK: - Property names — match these to YOUR database exactly
 
