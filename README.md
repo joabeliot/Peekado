@@ -25,7 +25,8 @@ No Dock icon, no window — just a checklist glyph in the menu bar.
 | File | Role |
 | --- | --- |
 | `PeekADo/PeekADoApp.swift` | App entry — the `MenuBarExtra` scene |
-| `PeekADo/Config.swift` | **Edit this** — database id + property names |
+| `PeekADo/LocalConfig.swift` | **Edit this** — your Notion database id (kept out of git) |
+| `PeekADo/Config.swift` | Property names + status/API config |
 | `PeekADo/TaskModel.swift` | `TodoTask` value type |
 | `PeekADo/KeychainStore.swift` | Stores the Notion token in the Keychain |
 | `PeekADo/NotionClient.swift` | `URLSession` calls: query database, patch page |
@@ -40,19 +41,31 @@ No Dock icon, no window — just a checklist glyph in the menu bar.
 3. Open your task database in Notion → **••• → Connections →** add your integration.
    (Without this the API returns 404 for the database.)
 
-### 2. Fill in `PeekADo/Config.swift`
+### 2. Point it at your database
+
+**`PeekADo/LocalConfig.swift`** — put your database id here, then tell git to
+stop tracking your edit so it never gets committed:
 
 ```swift
-static let databaseID   = "…"      // the 32-hex id from your database URL
+static let databaseID = "your-32-hex-database-id"
+```
+```sh
+git update-index --skip-worktree PeekADo/LocalConfig.swift
+```
+
+Getting the id: open the database as a full page — the URL is
+`notion.so/<workspace>/<DATABASE_ID>?v=<view_id>`, you want `<DATABASE_ID>`.
+
+**`PeekADo/Config.swift`** — match these to your database's property names:
+
+```swift
 static let titleProperty  = "Name"   // your title property
 static let dateProperty   = "Due"    // your date property
 static let statusProperty = "Status" // your status/select property
-static let statusPropertyKind: StatusKind = .status  // .status or .select
-static let doneStatusValue = "Done"
+static let statusPropertyKind: StatusKind = .select  // .status or .select
+static let doneStatusValue     = "Done"
+static let newTaskStatusValue  = "To do"   // "" ⇒ new tasks get no status
 ```
-
-Getting the database id: open the database as a full page, the URL looks like
-`notion.so/<workspace>/<DATABASE_ID>?v=<view_id>` — you want `<DATABASE_ID>`.
 
 ### 3. Build & run
 
