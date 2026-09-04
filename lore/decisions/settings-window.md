@@ -30,3 +30,5 @@ the menu bar icon.
   to satisfy `App`; the real window is the AppKit one.
 - `TaskListView` lost its inline settings panel and `showingSettings` state.
 - Closing the settings window doesn't quit (LSUIElement, no windows required).
+- Layout is a `TabView` — **Databases** / **Notion** (token) / **General**
+  (start at login, hotkey note). Fixed 480×540, each tab scrolls.
