@@ -114,6 +114,7 @@ final class AppSettings: ObservableObject {
         do {
             let schema = try await NotionClient.fetchDatabaseSchema(id: profiles[index].databaseID)
             var p = profiles[index]
+            p.databaseID = schema.databaseID   // canonical (URL / view-id stripped)
             if !schema.name.isEmpty { p.name = schema.name }
             p.titleProperty = schema.titleProperty
             p.dateProperty = schema.dateProperty

@@ -46,6 +46,7 @@ struct NotionClient {
 
     /// What a paste-the-id setup fills in.
     struct DatabaseSchema {
+        var databaseID: String
         var name: String
         var titleProperty: String
         var dateProperty: String
@@ -55,12 +56,29 @@ struct NotionClient {
         var newTaskValue: String
     }
 
+    /// Pull the bare database id out of whatever the user pasted — a full URL
+    /// (`…/p/<id>?v=<viewid>`, `…/<slug>-<id>?v=…`), a dashed UUID, or the id
+    /// itself. Takes the id *before* any `?` so the view id is ignored.
+    static func canonicalDatabaseID(_ raw: String) -> String {
+        let head = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: "?").first.map(String.init) ?? ""
+        let lastSegment = head.split(separator: "/").last.map(String.init) ?? head
+        // grab a trailing 32-hex run, dashes optional
+        if let range = lastSegment.range(
+            of: "[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$",
+            options: .regularExpression
+        ) {
+            return lastSegment[range].replacingOccurrences(of: "-", with: "")
+        }
+        return lastSegment.replacingOccurrences(of: "-", with: "")
+    }
+
     /// `GET /v1/databases/{id}` → guess which property is title / date / status,
     /// the status field's kind, and its "done" / "to do" option names.
-    /// Independent of the instance (only needs the token).
+    /// Only needs the token (no instance).
     static func fetchDatabaseSchema(id rawID: String) async throws -> DatabaseSchema {
         guard let token = KeychainStore.readToken() else { throw ClientError.missingToken }
-        let id = rawID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let id = canonicalDatabaseID(rawID)
         guard !id.isEmpty else { throw ClientError.missingDatabaseID }
 
         var request = URLRequest(url: URL(string: "https://api.notion.com/v1/databases/\(id)")!)
@@ -68,7 +86,14 @@ struct NotionClient {
         request.setValue(Config.notionAPIVersion, forHTTPHeaderField: "Notion-Version")
 
         let (data, response) = try await URLSession.shared.data(for: request)
-        try check(response, data)
+        do {
+            try check(response, data)
+        } catch ClientError.http(404, _) {
+            throw ClientError.schema(
+                "Notion couldn't find that database. Check the ID, and make sure the "
+                + "database is shared with your Peek-a-Do integration (••• → Connections)."
+            )
+        }
 
         guard
             let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -118,6 +143,7 @@ struct NotionClient {
             .compactMap { $0["plain_text"] as? String }.joined() ?? ""
 
         return DatabaseSchema(
+            databaseID: id,
             name: dbName,
             titleProperty: title,
             dateProperty: date,
@@ -131,7 +157,7 @@ struct NotionClient {
     // MARK: - Read
 
     func fetchTodaysTasks() async throws -> [TodoTask] {
-        let url = URL(string: "https://api.notion.com/v1/databases/\(Config.databaseID)/query")!
+        let url = URL(string: "https://api.notion.com/v1/databases/\(Self.canonicalDatabaseID(Config.databaseID))/query")!
         var request = baseRequest(url: url, method: "POST")
         request.httpBody = try JSONSerialization.data(withJSONObject: queryBody())
 
@@ -165,7 +191,7 @@ struct NotionClient {
             ]
         }
         let body: [String: Any] = [
-            "parent": ["database_id": Config.databaseID],
+            "parent": ["database_id": Self.canonicalDatabaseID(Config.databaseID)],
             "properties": properties,
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
