@@ -125,7 +125,9 @@ final class TaskListModel: ObservableObject {
         let before = tasks[index]
         tasks[index].originalStatus = next
         tasks[index].done = next.caseInsensitiveCompare(Config.doneStatusValue) == .orderedSame
-        phase = .loaded(tasks)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            phase = .loaded(Self.ordered(tasks))   // regroup to-do / in progress / done
+        }
 
         let pageID = before.id
         Task {
@@ -136,17 +138,29 @@ final class TaskListModel: ObservableObject {
                 if case var .loaded(current) = phase,
                    let i = current.firstIndex(where: { $0.id == pageID }) {
                     current[i] = before
-                    phase = .loaded(current)
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        phase = .loaded(Self.ordered(current))
+                    }
                 }
                 NSSound.beep()
             }
         }
     }
 
-    /// Open tasks first (by time), completed tasks last (by time).
+    /// Sort tier: to-do (0) → in progress (1) → done (2), then by time.
+    private static func rank(_ t: TodoTask) -> Int {
+        if t.done { return 2 }
+        if !Config.inProgressStatusValue.isEmpty,
+           t.originalStatus.caseInsensitiveCompare(Config.inProgressStatusValue) == .orderedSame {
+            return 1
+        }
+        return 0
+    }
+
     static func ordered(_ tasks: [TodoTask]) -> [TodoTask] {
         tasks.sorted { a, b in
-            if a.done != b.done { return !a.done }
+            let (ra, rb) = (rank(a), rank(b))
+            if ra != rb { return ra < rb }
             return (a.dueTime ?? .distantFuture) < (b.dueTime ?? .distantFuture)
         }
     }
