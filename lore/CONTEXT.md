@@ -127,3 +127,10 @@ Settings editor split status kind / values rows. Installed.
 Note: JB's pre-existing "Stablish" profile decoded with the default
 "In progress" — he should Re-detect it if his DB names it differently.
 Loaded: `features/{task-list,multi-database}.md`, `architecture/models.md`.
+
+### 2026-09-04 (cont.) — JB / claude-code
+"How do I make a task in progress?" — click was done-only. Now a click **cycles**
+to do → in progress → done (`TaskListModel.statusCycle` / `advance`). `setDone`
+→ `setStatus(pageID:value:)` (can also null the field). `TodoTask.originalStatus`
+is now `var`. Installed.
+Loaded: `features/task-list.md`, `architecture/apis.md`.

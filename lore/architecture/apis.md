@@ -30,11 +30,12 @@ Filters on date only — Done tasks are fetched too, so the footer can show
 "X of Y done". No pagination handling — 100-task ceiling per day is fine.
 See `decisions/show-done-tasks.md`.
 
-### `setDone(pageID:done:restoreStatus:)` → `PATCH /pages/{pageID}`
+### `setStatus(pageID:value:)` → `PATCH /pages/{pageID}`
 ```json
 { "properties": { "<statusProperty>": { "<status|select>": { "name": "<value>" } } } }
 ```
-`value` = `doneStatusValue` when checking, `restoreStatus` when un-checking.
+`value` = the next step from `TaskListModel.statusCycle()`. Empty `value` sends
+`null` for the field, clearing the status.
 
 ### `createTask(title:)` → `POST /pages`
 ```json

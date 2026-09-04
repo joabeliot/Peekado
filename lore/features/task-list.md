@@ -6,9 +6,11 @@
 The dropdown's core. On every open it queries Notion for pages due today (Done
 included) and shows them in a `List` — a status glyph, the title, an optional
 status badge, an optional time on the right. Open tasks sort first (by time),
-completed last. Clicking a row marks it done: the glyph fills and the title
-strikes through in place, then a PATCH goes to Notion. On failure it reverts and
-beeps. The footer shows "X of Y done".
+completed last. Clicking a row **advances its status** one step around
+`TaskListModel.statusCycle()` — `to do → in progress → done → to do`
+(`[newTaskValue, inProgressValue, doneValue]`, deduped, empties dropped; an
+unrecognised current status jumps straight to done). Optimistic
+(`NotionClient.setStatus`), reverts + beeps on failure. Footer shows "X of Y done".
 
 ### Status glyph + badge
 - done → filled accent check, strikethrough
