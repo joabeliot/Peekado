@@ -100,9 +100,10 @@ final class AppSettings: ObservableObject {
         defaults.set(p?.titleProperty.trimmed ?? "",  forKey: Config.Key.titleProperty)
         defaults.set(p?.dateProperty.trimmed ?? "",   forKey: Config.Key.dateProperty)
         defaults.set(p?.statusProperty.trimmed ?? "", forKey: Config.Key.statusProperty)
-        defaults.set(p?.statusKind ?? "select",       forKey: Config.Key.statusKind)
-        defaults.set(p?.doneValue.trimmed ?? "Done",  forKey: Config.Key.doneValue)
-        defaults.set(p?.newTaskValue.trimmed ?? "",   forKey: Config.Key.newTaskValue)
+        defaults.set(p?.statusKind ?? "select",                  forKey: Config.Key.statusKind)
+        defaults.set(p?.doneValue.trimmed ?? "Done",             forKey: Config.Key.doneValue)
+        defaults.set(p?.inProgressValue.trimmed ?? "In progress", forKey: Config.Key.inProgressValue)
+        defaults.set(p?.newTaskValue.trimmed ?? "",              forKey: Config.Key.newTaskValue)
     }
 
     /// Ask Notion for the database's schema and fill in the profile's property
@@ -121,6 +122,7 @@ final class AppSettings: ObservableObject {
             p.statusProperty = schema.statusProperty
             p.statusKind = schema.statusKind.rawValue
             p.doneValue = schema.doneValue
+            p.inProgressValue = schema.inProgressValue
             p.newTaskValue = schema.newTaskValue
             profiles[index] = p   // triggers persist()
             return nil

@@ -16,9 +16,10 @@ enum Config {
         static let titleProperty  = "notion.titleProperty"
         static let dateProperty   = "notion.dateProperty"
         static let statusProperty = "notion.statusProperty"
-        static let statusKind     = "notion.statusKind"
-        static let doneValue      = "notion.doneValue"
-        static let newTaskValue   = "notion.newTaskValue"
+        static let statusKind      = "notion.statusKind"
+        static let doneValue       = "notion.doneValue"
+        static let inProgressValue = "notion.inProgressValue"
+        static let newTaskValue    = "notion.newTaskValue"
     }
 
     // MARK: - Settings-backed (mirrored from the primary DatabaseProfile)
@@ -35,6 +36,9 @@ enum Config {
 
     /// The `statusProperty` value that means "finished".
     static var doneStatusValue: String { value(Key.doneValue, or: "Done") }
+
+    /// The `statusProperty` value that means "in progress".
+    static var inProgressStatusValue: String { value(Key.inProgressValue, or: "In progress") }
 
     /// Status applied to a task created from the dropdown. `""` ⇒ no status set.
     static var newTaskStatusValue: String {

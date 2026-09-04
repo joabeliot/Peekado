@@ -24,6 +24,8 @@ struct DatabaseProfile: Codable, Identifiable, Equatable {
     var statusKind: String
     /// The `statusProperty` value that means "finished".
     var doneValue: String
+    /// The `statusProperty` value that means "in progress" (for the row badge).
+    var inProgressValue: String
     /// Status applied to a task created from the dropdown. `""` ⇒ no status set.
     var newTaskValue: String
 
@@ -36,6 +38,7 @@ struct DatabaseProfile: Codable, Identifiable, Equatable {
         statusProperty: String = "Status",
         statusKind: String = "select",
         doneValue: String = "Done",
+        inProgressValue: String = "In progress",
         newTaskValue: String = "To do"
     ) {
         self.id = id
@@ -46,6 +49,7 @@ struct DatabaseProfile: Codable, Identifiable, Equatable {
         self.statusProperty = statusProperty
         self.statusKind = statusKind
         self.doneValue = doneValue
+        self.inProgressValue = inProgressValue
         self.newTaskValue = newTaskValue
     }
 
@@ -61,6 +65,7 @@ struct DatabaseProfile: Codable, Identifiable, Equatable {
         statusProperty = try c.decodeIfPresent(String.self, forKey: .statusProperty) ?? "Status"
         statusKind = try c.decodeIfPresent(String.self, forKey: .statusKind) ?? "select"
         doneValue = try c.decodeIfPresent(String.self, forKey: .doneValue) ?? "Done"
+        inProgressValue = try c.decodeIfPresent(String.self, forKey: .inProgressValue) ?? "In progress"
         newTaskValue = try c.decodeIfPresent(String.self, forKey: .newTaskValue) ?? "To do"
     }
 

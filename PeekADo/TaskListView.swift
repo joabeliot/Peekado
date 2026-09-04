@@ -246,15 +246,29 @@ struct TaskListView: View {
 
     private func taskList(_ tasks: [TodoTask]) -> some View {
         List(tasks) { task in
+            let inProgress = isInProgress(task)
             Button {
                 model.toggle(task)
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Image(systemName: task.done ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(task.done ? Color.accentColor : Color.secondary)
+                    Image(systemName: task.done ? "checkmark.circle.fill"
+                          : inProgress ? "circle.lefthalf.filled"
+                          : "circle")
+                        .foregroundStyle(task.done ? Color.accentColor
+                                         : inProgress ? Color.orange
+                                         : Color.secondary)
                     Text(task.title)
                         .strikethrough(task.done)
                         .foregroundStyle(task.done ? Color.secondary : Color.primary)
+                    if let label = statusBadge(task) {
+                        Text(label)
+                            .font(.system(size: 9, weight: .semibold))
+                            .textCase(.uppercase)
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(Capsule().fill(
+                                (inProgress ? Color.orange : Color.secondary).opacity(0.16)))
+                            .foregroundStyle(inProgress ? Color.orange : Color.secondary)
+                    }
                     Spacer()
                     if let due = task.dueTime {
                         Text(due, format: .dateTime.hour().minute())
@@ -269,6 +283,19 @@ struct TaskListView: View {
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
         .frame(maxHeight: 320)
+    }
+
+    private func isInProgress(_ t: TodoTask) -> Bool {
+        !t.done && !Config.inProgressStatusValue.isEmpty
+            && t.originalStatus.caseInsensitiveCompare(Config.inProgressStatusValue) == .orderedSame
+    }
+
+    /// A short status label for non-done tasks that carry a status other than the
+    /// plain "to do" value (in-progress, or anything custom like "Blocked").
+    private func statusBadge(_ t: TodoTask) -> String? {
+        guard !t.done, !t.originalStatus.isEmpty else { return nil }
+        if t.originalStatus.caseInsensitiveCompare(Config.newTaskStatusValue) == .orderedSame { return nil }
+        return t.originalStatus
     }
 
     // MARK: Footer

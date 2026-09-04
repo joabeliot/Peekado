@@ -103,7 +103,7 @@ struct SettingsView: View {
                     } else if !p.isUsable {
                         Text("not set up — paste an ID in Edit").foregroundStyle(.orange)
                     } else {
-                        Text("\(p.titleProperty) · \(p.dateProperty) · \(p.statusProperty) (\(p.statusKind)), done → \(p.doneValue)")
+                        Text("\(p.titleProperty) · \(p.dateProperty) · \(p.statusProperty) (\(p.statusKind))  —  doing → \(p.inProgressValue), done → \(p.doneValue)")
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -138,14 +138,19 @@ struct SettingsView: View {
                     GridRow {
                         Text("Status").gridColumnAlignment(.trailing)
                             .font(.caption).foregroundStyle(.secondary)
+                        Picker("", selection: profile.statusKind) {
+                            Text("Select field").tag("select")
+                            Text("Status field").tag("status")
+                        }
+                        .labelsHidden().frame(width: 130)
+                    }
+                    GridRow {
+                        Text("Values").gridColumnAlignment(.trailing)
+                            .font(.caption).foregroundStyle(.secondary)
                         HStack(spacing: 6) {
-                            Picker("", selection: profile.statusKind) {
-                                Text("Select").tag("select")
-                                Text("Status").tag("status")
-                            }
-                            .labelsHidden().frame(width: 90)
-                            TextField("done", text: profile.doneValue).frame(width: 84)
-                            TextField("to do", text: profile.newTaskValue).frame(width: 84)
+                            TextField("to do", text: profile.newTaskValue).frame(width: 76)
+                            TextField("in progress", text: profile.inProgressValue).frame(width: 84)
+                            TextField("done", text: profile.doneValue).frame(width: 76)
                         }
                         .textFieldStyle(.roundedBorder).font(.callout)
                     }

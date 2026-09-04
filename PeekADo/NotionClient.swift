@@ -53,6 +53,7 @@ struct NotionClient {
         var statusProperty: String
         var statusKind: Config.StatusKind
         var doneValue: String
+        var inProgressValue: String
         var newTaskValue: String
     }
 
@@ -138,6 +139,10 @@ struct NotionClient {
             $0.range(of: "^(to.?do|todo|not.?started|backlog|new|open|inbox|next|planned)$",
                      options: [.regularExpression, .caseInsensitive]) != nil
         } ?? optionNames.first ?? "To do"
+        let inProgress = optionNames.first {
+            $0.range(of: "^(in.?progress|doing|active|started|wip|working|ongoing|current)$",
+                     options: [.regularExpression, .caseInsensitive]) != nil
+        } ?? "In progress"
 
         let dbName = (root["title"] as? [[String: Any]])?
             .compactMap { $0["plain_text"] as? String }.joined() ?? ""
@@ -150,6 +155,7 @@ struct NotionClient {
             statusProperty: statusName,
             statusKind: kind,
             doneValue: done,
+            inProgressValue: inProgress,
             newTaskValue: todo
         )
     }
