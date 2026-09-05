@@ -22,13 +22,30 @@ when a required property type is missing. Only needs the token (no instance).
 Body:
 ```json
 {
-  "filter": { "property": "<dateProperty>", "date": { "equals": "<yyyy-MM-dd>" } },
+  "filter": {
+    "or": [
+      { "property": "<dateProperty>", "date": { "equals": "<today>" } },
+      {
+        "and": [
+          { "property": "<dateProperty>", "date": { "on_or_after": "<7 days ago>" } },
+          { "property": "<dateProperty>", "date": { "before": "<today>" } },
+          { "property": "<statusProperty>", "<status|select>": { "does_not_equal": "<doneValue>" } }
+        ]
+      },
+      {
+        "and": [
+          { "property": "<dateProperty>", "date": { "on_or_after": "<7 days ago>" } },
+          { "property": "<dateProperty>", "date": { "before": "<today>" } },
+          { "property": "<statusProperty>", "<status|select>": { "is_empty": true } }
+        ]
+      }
+    ]
+  },
   "page_size": 100
 }
 ```
-Filters on date only — Done tasks are fetched too, so the footer can show
-"X of Y done". No pagination handling — 100-task ceiling per day is fine.
-See `decisions/show-done-tasks.md`.
+Fetches today's tasks (including Done, so the footer can show "X of Y done") plus overdue incomplete tasks from the past 7 days. Past Done tasks are excluded. Overdue tasks are rolled over to today via background `setDate` calls.
+See `decisions/rollover-overdue-tasks.md`.
 
 ### `setStatus(pageID:value:)` → `PATCH /pages/{pageID}`
 ```json
@@ -36,6 +53,12 @@ See `decisions/show-done-tasks.md`.
 ```
 `value` = the next step from `TaskListModel.statusCycle()`. Empty `value` sends
 `null` for the field, clearing the status.
+
+### `setDate(pageID:dateString:)` → `PATCH /pages/{pageID}`
+```json
+{ "properties": { "<dateProperty>": { "date": { "start": "<dateString>" } } } }
+```
+Updates the date property of a page. Used for background rollovers of overdue tasks.
 
 ### `createTask(title:)` → `POST /pages`
 ```json

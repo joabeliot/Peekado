@@ -1,9 +1,9 @@
 # Context
 
-**Focus:** v1 in daily use, growing on request. Just shipped multi-DB + a real Settings window.
+**Focus:** v1 in daily use. Just shipped 7-day overdue incomplete task rollover with background Notion date sync.
 **Phase:** Alpha (personal daily driver)
-**Open:** JB to confirm double-tap toggle (needs Accessibility grant) + the new Settings window + multi-DB. PKD-1 (distributable) — backlog. No tests. No CHANGELOG hook. `OG.md` + `MISSION.md` unwritten.
-**Next:** Nothing scheduled. Possible: quick-switch primary from the menu bar icon; per-profile status config.
+**Open:** JB to confirm double-tap toggle (needs Accessibility grant) + the new Settings window + multi-DB + overdue rollover. PKD-1 (distributable) — backlog. No tests. No CHANGELOG hook. `OG.md` + `MISSION.md` unwritten.
+**Next:** Nothing scheduled. Possible: quick-switch primary from the menu bar icon.
 
 ---
 
@@ -140,3 +140,14 @@ Reorder-on-click: `ordered()` now tiers to-do (0) → in progress (1) → done (
 then time, and `advance()` re-sorts (animated) after each click — the row moves
 to its group instead of staying put. Reverses the earlier "no reorder on toggle"
 call. Installed.
+
+### 2026-09-05 — JB / Antigravity
+Rollover of overdue incomplete tasks: tasks from previous days left in-progress or
+to-do previously vanished when the day changed because the query matched only
+`date == today`. `NotionClient.fetchTodaysTasks()` now queries today's tasks plus
+incomplete tasks (status != Done or empty) from the past 7 days (`on_or_after: 7 days ago`
+AND `before: today`). Overdue incomplete tasks are returned immediately to the UI
+and asynchronously patched in Notion to today's date (`NotionClient.setDate`) preserving
+time-of-day. Past Done tasks remain in the past and are excluded.
+Decision: `decisions/rollover-overdue-tasks.md`.
+Loaded: `GUARDRAILS.md`, `architecture/apis.md`, `features/task-list.md`, `decisions/show-done-tasks.md`.

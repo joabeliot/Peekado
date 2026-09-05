@@ -4,8 +4,11 @@
 
 ## What It Does
 The dropdown's core. On every open it queries Notion for pages due today (Done
-included) and shows them in a `List` — a status glyph, the title, an optional
-status badge, an optional time on the right. The list is grouped by tier — **to-do → in progress → done**, then by time
+included) plus incomplete tasks (To do, In progress, etc.) from the past 7 days,
+and shows them in a `List` — a status glyph, the title, an optional
+status badge, an optional time on the right. Overdue incomplete tasks are
+asynchronously updated in Notion to today's date, while past Done tasks remain
+in the past and are excluded. The list is grouped by tier — **to-do → in progress → done**, then by time
 (`TaskListModel.ordered` / `rank`). Clicking a row **advances its status** one
 step around `TaskListModel.statusCycle()` — `to do → in progress → done → to do`
 (`[newTaskValue, inProgressValue, doneValue]`, deduped, empties dropped; an

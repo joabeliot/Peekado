@@ -175,7 +175,25 @@ struct NotionClient {
             let results = root["results"] as? [[String: Any]]
         else { throw ClientError.badResponse }
 
-        return results.compactMap(Self.parseTask(from:))
+        let today = Self.isoDay.string(from: Date())
+        var tasks: [TodoTask] = []
+        var overdueUpdates: [(id: String, newDate: String)] = []
+
+        for page in results {
+            guard let parsed = Self.parseTask(from: page, today: today) else { continue }
+            tasks.append(parsed.task)
+            if let rolloverDate = parsed.rolloverDate {
+                overdueUpdates.append((id: parsed.task.id, newDate: rolloverDate))
+            }
+        }
+
+        if !overdueUpdates.isEmpty {
+            Task {
+                await Self.rolloverTasks(overdueUpdates, client: self)
+            }
+        }
+
+        return tasks
     }
 
     // MARK: - Write
@@ -207,9 +225,9 @@ struct NotionClient {
 
         guard
             let page = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let task = Self.parseTask(from: page)
+            let parsed = Self.parseTask(from: page, today: today)
         else { throw ClientError.badResponse }
-        return task
+        return parsed.task
     }
 
     /// Sets the task's status property to `value` (or clears it if `value` is empty).
@@ -231,6 +249,36 @@ struct NotionClient {
         try Self.check(response, data)
     }
 
+    /// Sets the task's date property in Notion to `dateString` (e.g. "yyyy-MM-dd" or ISO 8601).
+    func setDate(pageID: String, dateString: String) async throws {
+        let url = URL(string: "https://api.notion.com/v1/pages/\(pageID)")!
+        var request = baseRequest(url: url, method: "PATCH")
+        let body: [String: Any] = [
+            "properties": [
+                Config.dateProperty: [
+                    "date": ["start": dateString]
+                ]
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, data)
+    }
+
+    private static func rolloverTasks(
+        _ updates: [(id: String, newDate: String)],
+        client: NotionClient
+    ) async {
+        for update in updates {
+            do {
+                try await client.setDate(pageID: update.id, dateString: update.newDate)
+            } catch {
+                // Background rollover is best-effort — don't interrupt UI
+            }
+        }
+    }
+
     // MARK: - Request building
 
     private func baseRequest(url: URL, method: String) -> URLRequest {
@@ -243,22 +291,90 @@ struct NotionClient {
     }
 
     private func queryBody() -> [String: Any] {
-        let today = Self.isoDay.string(from: Date())
+        let calendar = Calendar(identifier: .gregorian)
+        let now = Date()
+        let today = Self.isoDay.string(from: now)
+        let sevenDaysAgoDate = calendar.date(byAdding: .day, value: -7, to: now) ?? now
+        let sevenDaysAgo = Self.isoDay.string(from: sevenDaysAgoDate)
 
-        // Everything due today, Done included — the dropdown needs the finished
+        let statusProperty = Config.statusProperty
+        let kindKey = Config.statusPropertyKind.rawValue  // "status" or "select"
+        let doneValue = Config.doneStatusValue
+
+        // 1. Everything due today, Done included — the dropdown needs the finished
         // ones to show "X of Y done". Completion is read from the status property.
+        let todayFilter: [String: Any] = [
+            "property": Config.dateProperty,
+            "date": ["equals": today],
+        ]
+
+        var orFilters: [[String: Any]] = [todayFilter]
+
+        // 2. Overdue incomplete tasks from the past 7 days (date on_or_after sevenDaysAgo AND date before today).
+        // Past Done tasks are excluded so they do not clutter today's view.
+        if !statusProperty.isEmpty && !doneValue.isEmpty {
+            let pastNotDoneFilter: [String: Any] = [
+                "and": [
+                    [
+                        "property": Config.dateProperty,
+                        "date": ["on_or_after": sevenDaysAgo],
+                    ],
+                    [
+                        "property": Config.dateProperty,
+                        "date": ["before": today],
+                    ],
+                    [
+                        "property": statusProperty,
+                        kindKey: ["does_not_equal": doneValue],
+                    ],
+                ]
+            ]
+            let pastEmptyStatusFilter: [String: Any] = [
+                "and": [
+                    [
+                        "property": Config.dateProperty,
+                        "date": ["on_or_after": sevenDaysAgo],
+                    ],
+                    [
+                        "property": Config.dateProperty,
+                        "date": ["before": today],
+                    ],
+                    [
+                        "property": statusProperty,
+                        kindKey: ["is_empty": true],
+                    ],
+                ]
+            ]
+            orFilters.append(pastNotDoneFilter)
+            orFilters.append(pastEmptyStatusFilter)
+        } else {
+            let pastFilter: [String: Any] = [
+                "and": [
+                    [
+                        "property": Config.dateProperty,
+                        "date": ["on_or_after": sevenDaysAgo],
+                    ],
+                    [
+                        "property": Config.dateProperty,
+                        "date": ["before": today],
+                    ],
+                ]
+            ]
+            orFilters.append(pastFilter)
+        }
+
         return [
-            "filter": [
-                "property": Config.dateProperty,
-                "date": ["equals": today],
-            ],
+            "filter": ["or": orFilters],
             "page_size": 100,
         ]
     }
 
     // MARK: - Parsing
 
-    private static func parseTask(from page: [String: Any]) -> TodoTask? {
+    private static func parseTask(
+        from page: [String: Any],
+        today: String = isoDay.string(from: Date())
+    ) -> (task: TodoTask, rolloverDate: String?)? {
         guard
             let id = page["id"] as? String,
             let properties = page["properties"] as? [String: Any]
@@ -266,14 +382,53 @@ struct NotionClient {
 
         let title = plainText(from: properties[Config.titleProperty]) ?? "(untitled)"
         let status = statusName(from: properties[Config.statusProperty])
+        let isDone = status == Config.doneStatusValue
 
-        return TodoTask(
+        let start = dateStart(from: properties[Config.dateProperty])
+        var rolloverDate: String? = nil
+        var effectiveDateString = start
+
+        if let start, start.count >= 10 {
+            let datePrefix = String(start.prefix(10))
+            if datePrefix < today {
+                if isDone {
+                    // Safety check: never show past completed tasks
+                    return nil
+                }
+                let rolled = rolloverDateString(from: start, today: today)
+                rolloverDate = rolled
+                effectiveDateString = rolled
+            }
+        }
+
+        let dueTime = time(from: effectiveDateString)
+
+        let task = TodoTask(
             id: id,
             title: title,
-            done: status == Config.doneStatusValue,
+            done: isDone,
             originalStatus: status ?? "",
-            dueTime: time(from: properties[Config.dateProperty])
+            dueTime: dueTime
         )
+
+        return (task: task, rolloverDate: rolloverDate)
+    }
+
+    /// Preserves any time-of-day component when rolling over a past date to today.
+    private static func rolloverDateString(from originalStart: String, today: String) -> String {
+        if originalStart.contains("T"), let tIndex = originalStart.firstIndex(of: "T") {
+            return today + originalStart[tIndex...]
+        }
+        return today
+    }
+
+    private static func dateStart(from property: Any?) -> String? {
+        guard
+            let property = property as? [String: Any],
+            let date = property["date"] as? [String: Any],
+            let start = date["start"] as? String
+        else { return nil }
+        return start
     }
 
     /// Concatenates the `plain_text` runs of a `title` or `rich_text` property.
@@ -298,16 +453,10 @@ struct NotionClient {
         return nil
     }
 
-    /// Returns the time component of the date property, but only if the start
-    /// value actually carried one (ISO8601 with a `T`).
-    private static func time(from property: Any?) -> Date? {
-        guard
-            let property = property as? [String: Any],
-            let date = property["date"] as? [String: Any],
-            let start = date["start"] as? String,
-            start.contains("T")
-        else { return nil }
-        return parseISO8601(start)
+    /// Returns the time component of the date string, if it carried one (ISO8601 with a `T`).
+    private static func time(from dateString: String?) -> Date? {
+        guard let dateString, dateString.contains("T") else { return nil }
+        return parseISO8601(dateString)
     }
 
     // MARK: - Helpers
